@@ -1,6 +1,7 @@
 import { MintConfig } from "../types/MintConfig.js";
 import { TokenSchema } from "../types/TokenSchema.js";
 import { Utxo, BuiltTransaction } from "../types/TransactionTypes.js";
+import { MintCoreError } from "../utils/errors.js";
 
 const DUST_LIMIT = 546n;
 const MIN_FEE = 1000n;
@@ -29,14 +30,14 @@ export class TransactionBuilder {
     const privateKeyBin = hexToBin(this.config.privateKey);
     const publicKey = secp256k1.derivePublicKeyCompressed(privateKeyBin);
     if (typeof publicKey === "string") {
-      throw new Error(`Failed to derive public key: ${publicKey}`);
+      throw new MintCoreError(`Failed to derive public key: ${publicKey}`);
     }
     const lockingBytecode = encodeLockingBytecodeP2pkh(hash160(publicKey));
 
     // 2. Fetch UTXOs for the minter
     const utxos = await this.fetchUtxos(this.config.privateKey);
     if (utxos.length === 0) {
-      throw new Error("No UTXOs available for minting");
+      throw new MintCoreError("No UTXOs available for minting");
     }
 
     // 3. Select the first UTXO as the genesis input
@@ -68,7 +69,7 @@ export class TransactionBuilder {
     const tokenOutputValue = DUST_LIMIT;
     const changeValue = utxoValue - tokenOutputValue - MIN_FEE;
     if (changeValue < 0n) {
-      throw new Error("Insufficient funds: UTXO value is too small for minting");
+      throw new MintCoreError("Insufficient funds: UTXO value is too small for minting");
     }
 
     // 6. Create the P2PKH compiler from the standard wallet template
@@ -125,7 +126,7 @@ export class TransactionBuilder {
     // 8. Generate the signed transaction
     const result = generateTransaction(template);
     if (!result.success) {
-      throw new Error(
+      throw new MintCoreError(
         `Transaction generation failed: ${JSON.stringify(result.errors)}`
       );
     }
