@@ -1,5 +1,5 @@
-import { hexToBin } from "@bitauth/libauth";
+import { fromHex } from "./hex.js";
 
 export function privateKeyToBin(key: string): Uint8Array {
-  return hexToBin(key);
+  return fromHex(key);
 }

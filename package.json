@@ -4,9 +4,11 @@
   "description": "A minimal CashTokens minting library built on top of Libauth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "test": "vitest run"
   },
   "keywords": [
     "bitcoin-cash",
@@ -16,7 +18,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@bitauth/libauth": "^2.0.0"
+    "@bitauth/libauth": "2.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

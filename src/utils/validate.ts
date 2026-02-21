@@ -1,4 +1,4 @@
-import { TokenSchema } from "../types/TokenSchema";
+import { TokenSchema } from "../types/TokenSchema.js";
 
 export function validateSchema(schema: TokenSchema): void {
   if (!schema.name) throw new Error("Token name is required");

@@ -1,6 +1,6 @@
-import { MintConfig } from "../types/MintConfig";
-import { TokenSchema } from "../types/TokenSchema";
-import { TransactionBuilder } from "../core/TransactionBuilder";
+import { MintConfig } from "../types/MintConfig.js";
+import { TokenSchema } from "../types/TokenSchema.js";
+import { TransactionBuilder } from "../core/TransactionBuilder.js";
 
 export class LibauthAdapter {
   private builder: TransactionBuilder;
