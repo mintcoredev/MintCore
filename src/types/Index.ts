@@ -1,2 +1,2 @@
-export * from "./MintConfig";
-export * from "./TokenSchema";
+export * from "./MintConfig.js";
+export * from "./TokenSchema.js";
