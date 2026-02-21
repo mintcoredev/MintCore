@@ -1,9 +1,14 @@
-# MintCore
+MintCore
 
-MintCore is a minimal, open‑source CashTokens minting engine built on top of `@bitauth/libauth`.  
-It provides a clean, stable API for minting fungible tokens, NFTs, and minting‑capability NFTs on Bitcoin Cash.
+MintCore is a minimal, open‑source CashTokens minting engine built on top of @bitauth/libauth.  
+It provides a clean, stable API for minting:
+
+- Fungible tokens  
+- NFTs  
+- Minting‑capability NFTs  
 
 MintCore is designed to be:
+
 - Beginner‑friendly  
 - Modular  
 - Auditable  
@@ -11,41 +16,41 @@ MintCore is designed to be:
 
 ---
 
-## Features
+🚀 Features
 
 - ✔ Mint fungible CashTokens  
 - ✔ Mint NFTs (capability + commitment)  
 - ✔ Automatic token category creation  
 - ✔ Real Libauth‑based transaction building  
-- ✔ Real signing + serialization  
+- ✔ Signing + serialization  
 - ✔ BCH change output  
 - ✔ Full schema validation  
 - ✔ NFT commitment validation  
 - ✔ Metadata size validation  
-- ✔ Consistent MintCoreError error type  
+- ✔ Consistent MintCoreError type  
 - ✔ 27 tests (validation + transaction building)  
 - ✔ ESM‑native TypeScript  
 
 ---
 
-## Installation
+📦 Installation
 
-\`\`\`bash
+`bash
 npm install mintcore
-\`\`\`
+`
 
 ---
 
-## Quick Start
+⚡ Quick Start
 
-### Mint a fungible token
+Mint a fungible token
 
-\`\`\`typescript
+`typescript
 import { MintEngine } from 'mintcore';
 
 const engine = new MintEngine({
-  network: 'mainnet',       // 'mainnet' | 'testnet' | 'regtest'
-  privateKey: 'YOUR_PRIVATE_KEY_HEX',
+  network: 'mainnet',
+  privateKey: 'YOURPRIVATEKEY_HEX',
 });
 
 const result = await engine.mint({
@@ -55,18 +60,20 @@ const result = await engine.mint({
   initialSupply: 1000000n,
 });
 
-console.log(result.txid); // broadcast-ready transaction ID
-console.log(result.hex);  // raw transaction hex
-\`\`\`
+console.log(result.txid);
+console.log(result.hex);
+`
 
-### Mint an NFT
+---
 
-\`\`\`typescript
+Mint an NFT
+
+`typescript
 import { MintEngine } from 'mintcore';
 
 const engine = new MintEngine({
   network: 'mainnet',
-  privateKey: 'YOUR_PRIVATE_KEY_HEX',
+  privateKey: 'YOURPRIVATEKEY_HEX',
 });
 
 const result = await engine.mint({
@@ -75,17 +82,19 @@ const result = await engine.mint({
   decimals: 0,
   initialSupply: 0n,
   nft: {
-    capability: 'minting',   // 'none' | 'mutable' | 'minting'
-    commitment: '0x1234abcd', // hex (0x-prefixed or bare) or UTF-8 string, max 40 bytes
+    capability: 'minting',
+    commitment: '0x1234abcd',
   },
 });
 
 console.log(result.txid);
-\`\`\`
+`
 
-### Validate a schema before minting
+---
 
-\`\`\`typescript
+Validate a schema before minting
+
+`typescript
 import { validateSchema, MintCoreError } from 'mintcore';
 
 try {
@@ -100,150 +109,152 @@ try {
     console.error('Validation failed:', e.message);
   }
 }
-\`\`\`
+`
 
 ---
 
-## API Reference
+📘 API Reference
 
-### \`MintEngine\`
+MintEngine
 
-The primary entry point for minting.
-
-\`\`\`typescript
+`typescript
 new MintEngine(config: MintConfig)
-\`\`\`
+`
 
 | Parameter | Type | Description |
-|-----------|------|-------------|
-| \`config.network\` | \`'mainnet' \| 'testnet' \| 'regtest'\` | Target network |
-| \`config.privateKey\` | \`string\` | 32-byte private key as hex |
-| \`config.feeRate\` | \`number\` (optional) | Fee rate (reserved for future use) |
+|----------|------|-------------|
+| config.network | 'mainnet' | 'testnet' | 'regtest' | Target network |
+| config.privateKey | string | 32‑byte hex private key |
+| config.feeRate | number (optional) | Reserved for future use |
 
-#### \`engine.mint(schema: TokenSchema): Promise<MintResult>\`
+engine.mint(schema: TokenSchema): Promise<MintResult>
 
-Validates the schema, builds, signs, and serializes the genesis transaction.
+Builds, signs, and serializes the genesis transaction.
 
-Returns a \`MintResult\`:
+Returns:
 
-\`\`\`typescript
+`typescript
 {
-  hex: string;                        // Raw transaction hex
-  txid: string;                       // Transaction ID (64-char hex)
+  hex: string;
+  txid: string;
   metadata: Record<string, any> | null;
 }
-\`\`\`
+`
 
 ---
 
-### \`TokenSchema\`
+TokenSchema
 
-Describes the token to mint.
-
-\`\`\`typescript
+`typescript
 interface TokenSchema {
   name: string;
   symbol: string;
   decimals: number;           // 0–18
-  initialSupply: bigint;      // Must be >= 0n
-  metadata?: Record<string, any>; // Max 1000 chars when serialised
+  initialSupply: bigint;      // >= 0n
+  metadata?: Record<string, any>; // Max 1000 chars
   nft?: {
     capability: 'none' | 'mutable' | 'minting';
-    commitment: string;       // Hex (0x-prefixed or bare) or UTF-8; max 40 bytes
+    commitment: string;       // Hex or UTF‑8, max 40 bytes
   };
 }
-\`\`\`
+`
 
 ---
 
-### \`MintCoreError\`
+MintCoreError
 
-All errors thrown by MintCore are instances of \`MintCoreError\` for easy handling:
+All MintCore errors extend MintCoreError:
 
-\`\`\`typescript
+`typescript
 import { MintCoreError } from 'mintcore';
 
 try {
   await engine.mint(schema);
 } catch (e) {
   if (e instanceof MintCoreError) {
-    // MintCore-specific error (validation, signing, etc.)
+    // Handle MintCore-specific error
   }
 }
-\`\`\`
+`
 
 ---
 
-### \`validateSchema(schema: TokenSchema): void\`
+validateSchema(schema: TokenSchema): void
 
-Runs schema validation synchronously.  Throws \`MintCoreError\` if any rule is violated:
+Throws MintCoreError if:
 
-- \`name\` and \`symbol\` must be non-empty  
-- \`decimals\` must be 0–18  
-- \`initialSupply\` must be ≥ 0  
-- NFT \`capability\` must be \`'none'\`, \`'mutable'\`, or \`'minting'\`  
-- NFT commitment must be valid hex or UTF-8 and ≤ 40 bytes  
-- \`metadata\` JSON serialization must be ≤ 1000 characters  
+- name or symbol is empty  
+- decimals is outside 0–18  
+- initialSupply < 0  
+- NFT capability is invalid  
+- NFT commitment is invalid or > 40 bytes  
+- Metadata JSON > 1000 chars  
 
 ---
 
-## Project Structure
+🗂 Project Structure
 
-\`\`\`
+`
 src/
 ├── core/
-│   ├── MintEngine.ts          # High-level mint API
-│   ├── TransactionBuilder.ts  # Libauth transaction construction
-│   └── MintResult.ts          # MintResult type
+│   ├── MintEngine.ts
+│   ├── TransactionBuilder.ts
+│   └── MintResult.ts
 ├── adapters/
-│   └── LibauthAdapter.ts      # Bridges MintEngine ↔ TransactionBuilder
+│   └── LibauthAdapter.ts
 ├── types/
 │   ├── MintConfig.ts
 │   ├── TokenSchema.ts
 │   └── TransactionTypes.ts
 └── utils/
-    ├── errors.ts              # MintCoreError
-    ├── validate.ts            # validateSchema
+    ├── errors.ts
+    ├── validate.ts
     ├── keys.ts
     └── hex.ts
 tests/
-├── TransactionBuilder.test.ts # 7 transaction-building tests
-└── validate.test.ts           # 20 schema-validation tests
-\`\`\`
+├── TransactionBuilder.test.ts
+└── validate.test.ts
+`
 
 ---
 
-## Development
+🛠 Development
 
-\`\`\`bash
-# Install dependencies
+`bash
 npm install
-
-# Build the project
 npm run build
-
-# Run tests
 npm test
-\`\`\`
+`
 
 ---
 
-## Roadmap
+🧭 Roadmap
 
-- [ ] Chronik UTXO provider integration  
-- [ ] ElectrumX UTXO provider integration  
+- [ ] Chronik UTXO provider  
+- [ ] ElectrumX UTXO provider  
 - [ ] Dynamic fee estimation  
-- [ ] Multi-UTXO selection  
+- [ ] Multi‑UTXO selection  
 - [ ] BCMR metadata attachment  
 
 ---
 
-## License
+📄 License
 
 MIT
 
 ---
 
-## Contributing
+🤝 Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome!  
+Please open an issue or submit a pull request.
+
+---
+
+If you want, I can also generate:
+
+- A badge header  
+- A logo  
+- A CHANGELOG  
+- A CONTRIBUTING guide  
+- An npm‑optimized version of the README
