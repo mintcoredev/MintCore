@@ -1,10 +1,12 @@
-export { MintEngine } from "./core/MintEngine.js";
-export { LibauthAdapter } from "./adapters/LibauthAdapter.js";
-export { TransactionBuilder } from "./core/TransactionBuilder.js";
-export { MintCoreError } from "./utils/errors.js";
-export { validateSchema } from "./utils/validate.js";
+export { MintEngine } from "./core/MintEngine";
+export { LibauthAdapter } from "./adapters/LibauthAdapter";
 
-export * from "./types/MintConfig.js";
-export * from "./types/TokenSchema.js";
-export * from "./core/MintResult.js";
-export * from "./types/TransactionTypes.js";
+export * from "./types/MintConfig";
+export * from "./types/TokenSchema";
+export * from "./core/MintResult";
+export * from "./types/TransactionTypes";
+
+export { MintCoreError } from "./utils/errors";
+export { validateSchema } from "./utils/validate";
+export { TransactionBuilder } from "./core/TransactionBuilder";
+export { ChronikProvider } from "./providers/ChronikProvider";
