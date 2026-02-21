@@ -1,1 +1,27 @@
-{\n  "name": "mintcore",\n  "version": "0.1.0",\n  "description": "A minimal CashTokens minting library built on top of Libauth",\n  "main": "dist/index.js",\n  "types": "dist/index.d.ts",\n  "scripts": {\n    "build": "tsc",\n    "dev": "ts-node src/index.ts"\n  },\n  "keywords": ["bitcoin-cash", "cashtokens", "minting", "libauth"],\n  "license": "MIT",\n  "dependencies": {\n    "libauth": "^1.17.0"\n  },\n  "devDependencies": {\n    "@types/node": "^20.0.0",\n    "ts-node": "^10.9.0",\n    "typescript": "^5.0.0"\n  }\n}
+{
+  "name": "mintcore",
+  "version": "0.1.0",
+  "description": "A minimal CashTokens minting library built on top of Libauth",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts"
+  },
+  "keywords": [
+    "bitcoin-cash",
+    "cashtokens",
+    "minting",
+    "libauth"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@bitauth/libauth": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

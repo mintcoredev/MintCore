@@ -1,0 +1,21 @@
+import type { AuthenticationProgramStateBCHCHIPs, AuthenticationProgramStateControlStackCHIPs, AuthenticationProgramStateError, AuthenticationProgramStateMinimum, AuthenticationProgramStateStack, Operation } from '../../../../lib.js';
+/**
+ * An implementation of {@link conditionallyEvaluate} that supports
+ * `CHIP-2021-05-loops`.
+ */
+export declare const conditionallyEvaluateChipLoops: <State extends AuthenticationProgramStateControlStackCHIPs>(operation: Operation<State>) => Operation<State>;
+export declare const undefinedOperationChipLoops: <State extends AuthenticationProgramStateControlStackCHIPs & AuthenticationProgramStateError>(state: State) => State;
+export declare const pushOperationChipLoops: <State extends AuthenticationProgramStateControlStackCHIPs & AuthenticationProgramStateError & AuthenticationProgramStateMinimum & AuthenticationProgramStateStack>(maximumPushSize?: number) => Operation<State>;
+/**
+ * Return the provided state with the provided value pushed to its control stack.
+ * @param state - the state to update and return
+ * @param data - the value to push to the stack
+ */
+export declare const pushToControlStackChipLoops: <State extends AuthenticationProgramStateControlStackCHIPs>(state: State, value: boolean | number) => State;
+export declare const opIfChipLoops: <State extends AuthenticationProgramStateControlStackCHIPs & AuthenticationProgramStateError & AuthenticationProgramStateStack>(state: State) => State;
+export declare const opNotIfChipLoops: <State extends AuthenticationProgramStateControlStackCHIPs & AuthenticationProgramStateError & AuthenticationProgramStateStack>(state: State) => State;
+export declare const opEndIfChipLoops: <State extends AuthenticationProgramStateControlStackCHIPs & AuthenticationProgramStateError>(state: State) => State;
+export declare const opElseChipLoops: <State extends AuthenticationProgramStateControlStackCHIPs & AuthenticationProgramStateError>(state: State) => State;
+export declare const opBegin: <State extends AuthenticationProgramStateBCHCHIPs>(state: State) => State;
+export declare const opUntil: <State extends AuthenticationProgramStateBCHCHIPs>(state: State) => State;
+//# sourceMappingURL=bch-chips-loops.d.ts.map
