@@ -5,6 +5,8 @@ import {
   encodeLockingBytecodeP2pkh,
   lockingBytecodeToCashAddress,
   encodeTransactionBCH,
+  encodeDataPush,
+  generateSigningSerializationBCH,
   NonFungibleTokenCapability,
   CashAddressNetworkPrefix,
 } from "@bitauth/libauth";
@@ -15,6 +17,22 @@ import { ChronikProvider } from "../providers/ChronikProvider";
 import { ElectrumXProvider } from "../providers/ElectrumXProvider";
 import { MintCoreError } from "../utils/errors";
 import { fromHex, toHex } from "../utils/hex";
+import {
+  estimateFee,
+  DEFAULT_FEE_RATE,
+  TOKEN_OUTPUT_DUST,
+  DUST_THRESHOLD,
+} from "../utils/fee";
+import { selectUtxos } from "../utils/coinselect";
+
+/** BCH SIGHASH_ALL | SIGHASH_FORKID (0x41) */
+const SIGHASH_ALL_FORKID = new Uint8Array([0x41]);
+
+/** 4-byte ASCII marker used in every BCMR OP_RETURN output ("BCMR"). */
+const BCMR_MARKER = new Uint8Array([0x42, 0x43, 0x4d, 0x52]);
+
+/** OP_RETURN opcode. */
+const OP_RETURN = 0x6a;
 
 export class TransactionBuilder {
   private readonly utxoProvider?: ChronikProvider | ElectrumXProvider;
@@ -28,18 +46,36 @@ export class TransactionBuilder {
   }
 
   async build(schema: TokenSchema): Promise<BuiltTransaction> {
-    if (this.utxoProvider) {
-      const utxos = await this.fetchUtxos();
-      if (utxos.length === 0) {
-        throw new MintCoreError("No UTXOs available for minting");
-      }
+    const lockingBytecode = this.deriveLockingBytecode();
+    const privKeyBin = fromHex(this.config.privateKey);
+    const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
+    if (typeof pubKey === "string") {
+      throw new MintCoreError(`Invalid private key: ${pubKey}`);
     }
 
-    const lockingBytecode = this.deriveLockingBytecode();
+    if (this.utxoProvider) {
+      return this.buildFundedTransaction(schema, lockingBytecode, privKeyBin, pubKey);
+    }
 
-    // Use a deterministic zero outpoint for offline genesis builds.
-    // The token category is always the first input's outpoint txhash.
+    return this.buildOfflineTransaction(schema, lockingBytecode);
+  }
+
+  /**
+   * Build an offline genesis transaction using a zero outpoint.
+   * No UTXOs are needed; the token category is derived from the zero txid.
+   */
+  private buildOfflineTransaction(
+    schema: TokenSchema,
+    lockingBytecode: Uint8Array
+  ): BuiltTransaction {
     const genesisTxid = new Uint8Array(32);
+
+    const outputs = [
+      this.buildTokenOutput(schema, lockingBytecode, genesisTxid, TOKEN_OUTPUT_DUST),
+    ];
+    if (schema.bcmrUri) {
+      outputs.push(this.buildBcmrOutput(schema.bcmrUri));
+    }
 
     const tx = {
       version: 2,
@@ -51,14 +87,101 @@ export class TransactionBuilder {
           unlockingBytecode: new Uint8Array(0),
         },
       ],
-      outputs: [this.buildTokenOutput(schema, lockingBytecode, genesisTxid)],
+      outputs,
       locktime: 0,
     };
 
     const txBytes = encodeTransactionBCH(tx);
     const txid = hash256(txBytes).reverse();
-
     return { hex: toHex(txBytes), txid: toHex(txid) };
+  }
+
+  /**
+   * Build a funded, signed genesis transaction using real UTXOs.
+   *
+   * Steps:
+   * 1. Fetch UTXOs for the derived address.
+   * 2. Determine the number of outputs (token [+ BCMR OP_RETURN] [+ change]).
+   * 3. Select UTXOs via greedy coin-selection with dynamic fee estimation.
+   * 4. Construct and sign each input (P2PKH, ECDSA DER).
+   * 5. Return the serialised transaction.
+   */
+  private async buildFundedTransaction(
+    schema: TokenSchema,
+    lockingBytecode: Uint8Array,
+    privKeyBin: Uint8Array,
+    pubKey: Uint8Array
+  ): Promise<BuiltTransaction> {
+    const utxos = await this.fetchUtxos();
+    if (utxos.length === 0) {
+      throw new MintCoreError("No UTXOs available for minting");
+    }
+
+    const feeRate = this.config.feeRate ?? DEFAULT_FEE_RATE;
+
+    // Non-change outputs: token output + optional BCMR OP_RETURN
+    const nonChangeOutputCount = 1 + (schema.bcmrUri ? 1 : 0);
+
+    const { selected, fee, change } = selectUtxos(
+      utxos,
+      TOKEN_OUTPUT_DUST,
+      nonChangeOutputCount,
+      feeRate,
+      true
+    );
+
+    // The token category is the txid of the first input's outpoint (internal byte order).
+    const categoryHash = fromHex(selected[0].txid).reverse();
+
+    // Build outputs
+    const outputs = [
+      this.buildTokenOutput(schema, lockingBytecode, categoryHash, TOKEN_OUTPUT_DUST),
+    ];
+    if (schema.bcmrUri) {
+      outputs.push(this.buildBcmrOutput(schema.bcmrUri));
+    }
+    if (change > DUST_THRESHOLD) {
+      outputs.push({ lockingBytecode, valueSatoshis: BigInt(change) });
+    }
+
+    // Build unsigned inputs
+    const inputs = selected.map((utxo) => ({
+      outpointTransactionHash: fromHex(utxo.txid).reverse(),
+      outpointIndex: utxo.vout,
+      sequenceNumber: 0xffffffff,
+      unlockingBytecode: new Uint8Array(0),
+    }));
+
+    // Source outputs (the UTXOs being spent) – needed for sighash computation
+    const sourceOutputs = selected.map((utxo) => ({
+      lockingBytecode,
+      valueSatoshis: BigInt(utxo.satoshis),
+    }));
+
+    const tx = { version: 2, inputs, outputs, locktime: 0 };
+
+    // Sign each input with P2PKH ECDSA (DER encoding) + SIGHASH_ALL|FORKID
+    for (let i = 0; i < inputs.length; i++) {
+      const context = { inputIndex: i, sourceOutputs, transaction: tx };
+      const signingData = generateSigningSerializationBCH(context, {
+        coveredBytecode: lockingBytecode,
+        signingSerializationType: SIGHASH_ALL_FORKID,
+      });
+      const msgHash = hash256(signingData);
+      const derSig = secp256k1.signMessageHashDER(privKeyBin, msgHash);
+      if (typeof derSig === "string") {
+        throw new MintCoreError(`Failed to sign input ${i}: ${derSig}`);
+      }
+      const sigWithHashType = new Uint8Array([...derSig, SIGHASH_ALL_FORKID[0]]);
+      tx.inputs[i].unlockingBytecode = new Uint8Array([
+        ...encodeDataPush(sigWithHashType),
+        ...encodeDataPush(pubKey),
+      ]);
+    }
+
+    const txBytes = encodeTransactionBCH(tx);
+    const txid = hash256(txBytes).reverse();
+    return { hex: toHex(txBytes), txid: toHex(txid), fee };
   }
 
   /** Derive the P2PKH locking bytecode from the configured private key. */
@@ -115,7 +238,8 @@ export class TransactionBuilder {
   private buildTokenOutput(
     schema: TokenSchema,
     lockingBytecode: Uint8Array,
-    category: Uint8Array
+    category: Uint8Array,
+    valueSatoshis: number
   ) {
     const tokenData: {
       amount: bigint;
@@ -140,8 +264,26 @@ export class TransactionBuilder {
 
     return {
       lockingBytecode,
-      valueSatoshis: BigInt(1000),
+      valueSatoshis: BigInt(valueSatoshis),
       token: tokenData,
     };
+  }
+
+  /**
+   * Build an OP_RETURN output carrying BCMR metadata.
+   *
+   * Format: OP_RETURN <push "BCMR"> <push uri>
+   *
+   * This follows the BCMR on-chain authchain convention:
+   * https://github.com/bitjson/chip-bcmr
+   */
+  private buildBcmrOutput(uri: string) {
+    const uriBytes = new TextEncoder().encode(uri);
+    const lockingBytecode = new Uint8Array([
+      OP_RETURN,
+      ...encodeDataPush(BCMR_MARKER),
+      ...encodeDataPush(uriBytes),
+    ]);
+    return { lockingBytecode, valueSatoshis: 0n };
   }
 }

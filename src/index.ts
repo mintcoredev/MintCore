@@ -11,3 +11,6 @@ export { validateSchema } from "./utils/validate";
 export { TransactionBuilder } from "./core/TransactionBuilder";
 export { ChronikProvider } from "./providers/ChronikProvider";
 export { ElectrumXProvider } from "./providers/ElectrumXProvider";
+export { estimateFee, DEFAULT_FEE_RATE, TOKEN_OUTPUT_DUST, DUST_THRESHOLD } from "./utils/fee";
+export { selectUtxos } from "./utils/coinselect";
+export type { CoinSelectResult } from "./utils/coinselect";
