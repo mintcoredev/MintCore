@@ -12,20 +12,23 @@ import { MintConfig } from "../types/MintConfig";
 import { TokenSchema } from "../types/TokenSchema";
 import { Utxo, BuiltTransaction } from "../types/TransactionTypes";
 import { ChronikProvider } from "../providers/ChronikProvider";
+import { ElectrumXProvider } from "../providers/ElectrumXProvider";
 import { MintCoreError } from "../utils/errors";
 import { fromHex, toHex } from "../utils/hex";
 
 export class TransactionBuilder {
-  private readonly chronik?: ChronikProvider;
+  private readonly utxoProvider?: ChronikProvider | ElectrumXProvider;
 
   constructor(private config: MintConfig) {
     if (config.utxoProviderUrl) {
-      this.chronik = new ChronikProvider(config.utxoProviderUrl, config.network);
+      this.utxoProvider = new ChronikProvider(config.utxoProviderUrl, config.network);
+    } else if (config.electrumxProviderUrl) {
+      this.utxoProvider = new ElectrumXProvider(config.electrumxProviderUrl, config.network);
     }
   }
 
   async build(schema: TokenSchema): Promise<BuiltTransaction> {
-    if (this.chronik) {
+    if (this.utxoProvider) {
       const utxos = await this.fetchUtxos();
       if (utxos.length === 0) {
         throw new MintCoreError("No UTXOs available for minting");
@@ -89,13 +92,13 @@ export class TransactionBuilder {
   }
 
   private async fetchUtxos(): Promise<Utxo[]> {
-    if (!this.chronik) {
+    if (!this.utxoProvider) {
       throw new MintCoreError(
-        "No UTXO provider configured. Set `utxoProviderUrl` in MintConfig to use Chronik."
+        "No UTXO provider configured. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
       );
     }
     const address = this.deriveAddressFromConfig();
-    return this.chronik.fetchUtxos(address);
+    return this.utxoProvider.fetchUtxos(address);
   }
 
   /** Encode the NFT commitment string to bytes (hex or UTF-8). */

@@ -28,8 +28,10 @@ MintCore is designed to be:
 - ✔ NFT commitment validation  
 - ✔ Metadata size validation  
 - ✔ Consistent MintCoreError type  
-- ✔ 27 tests (validation + transaction building)  
+- ✔ 37 tests (validation + transaction building + providers)  
 - ✔ ESM‑native TypeScript  
+- ✔ Chronik UTXO provider  
+- ✔ ElectrumX / Fulcrum UTXO provider  
 
 ---
 
@@ -202,6 +204,9 @@ src/
 │   └── MintResult.ts
 ├── adapters/
 │   └── LibauthAdapter.ts
+├── providers/
+│   ├── ChronikProvider.ts
+│   └── ElectrumXProvider.ts
 ├── types/
 │   ├── MintConfig.ts
 │   ├── TokenSchema.ts
@@ -213,6 +218,7 @@ src/
     └── hex.ts
 tests/
 ├── TransactionBuilder.test.ts
+├── ElectrumXProvider.test.ts
 └── validate.test.ts
 `
 
@@ -230,8 +236,8 @@ npm test
 
 🧭 Roadmap
 
-- [ ] Chronik UTXO provider  
-- [ ] ElectrumX UTXO provider  
+- [x] Chronik UTXO provider  
+- [x] ElectrumX UTXO provider  
 - [ ] Dynamic fee estimation  
 - [ ] Multi‑UTXO selection  
 - [ ] BCMR metadata attachment  

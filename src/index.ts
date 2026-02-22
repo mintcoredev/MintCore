@@ -10,3 +10,4 @@ export { MintCoreError } from "./utils/errors";
 export { validateSchema } from "./utils/validate";
 export { TransactionBuilder } from "./core/TransactionBuilder";
 export { ChronikProvider } from "./providers/ChronikProvider";
+export { ElectrumXProvider } from "./providers/ElectrumXProvider";
