@@ -4,6 +4,7 @@ import {
   hash256,
   encodeLockingBytecodeP2pkh,
   lockingBytecodeToCashAddress,
+  decodeCashAddress,
   encodeTransactionBCH,
   encodeDataPush,
   generateSigningSerializationBCH,
@@ -46,8 +47,24 @@ export class TransactionBuilder {
   }
 
   async build(schema: TokenSchema): Promise<BuiltTransaction> {
-    const lockingBytecode = this.deriveLockingBytecode();
-    const privKeyBin = fromHex(this.config.privateKey);
+    if (!this.config.privateKey && !this.config.walletProvider) {
+      throw new MintCoreError(
+        "No signing credentials configured. Provide `privateKey` or `walletProvider` in MintConfig."
+      );
+    }
+
+    const lockingBytecode = await this.getLockingBytecode();
+
+    // Wallet-provider path (no raw private key needed)
+    if (this.config.walletProvider && !this.config.privateKey) {
+      if (!this.utxoProvider) {
+        return this.buildOfflineTransaction(schema, lockingBytecode);
+      }
+      return this.buildWalletFundedTransaction(schema, lockingBytecode);
+    }
+
+    // Private-key path (existing behaviour)
+    const privKeyBin = fromHex(this.config.privateKey!);
     const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
     if (typeof pubKey === "string") {
       throw new MintCoreError(`Invalid private key: ${pubKey}`);
@@ -58,6 +75,22 @@ export class TransactionBuilder {
     }
 
     return this.buildOfflineTransaction(schema, lockingBytecode);
+  }
+
+  /**
+   * Broadcast a signed raw transaction via the configured UTXO provider.
+   *
+   * @param txHex - Fully-signed transaction hex string.
+   * @returns The resulting transaction ID returned by the network.
+   * @throws {MintCoreError} when no provider is configured or the broadcast fails.
+   */
+  async broadcast(txHex: string): Promise<string> {
+    if (!this.utxoProvider) {
+      throw new MintCoreError(
+        "No UTXO provider configured. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
+      );
+    }
+    return this.utxoProvider.broadcastTransaction(txHex);
   }
 
   /**
@@ -184,9 +217,73 @@ export class TransactionBuilder {
     return { hex: toHex(txBytes), txid: toHex(txid), fee };
   }
 
+  /**
+   * Build a funded transaction and have the configured wallet provider sign it.
+   *
+   * The unsigned transaction is serialised, handed to the wallet via
+   * `walletProvider.signTransaction()`, and the signed result is returned.
+   */
+  private async buildWalletFundedTransaction(
+    schema: TokenSchema,
+    lockingBytecode: Uint8Array
+  ): Promise<BuiltTransaction> {
+    const utxos = await this.fetchUtxos();
+    if (utxos.length === 0) {
+      throw new MintCoreError("No UTXOs available for minting");
+    }
+
+    const feeRate = this.config.feeRate ?? DEFAULT_FEE_RATE;
+    const nonChangeOutputCount = 1 + (schema.bcmrUri ? 1 : 0);
+
+    const { selected, fee, change } = selectUtxos(
+      utxos,
+      TOKEN_OUTPUT_DUST,
+      nonChangeOutputCount,
+      feeRate,
+      true
+    );
+
+    const categoryHash = fromHex(selected[0].txid).reverse();
+
+    const outputs = [
+      this.buildTokenOutput(schema, lockingBytecode, categoryHash, TOKEN_OUTPUT_DUST),
+    ];
+    if (schema.bcmrUri) {
+      outputs.push(this.buildBcmrOutput(schema.bcmrUri));
+    }
+    if (change > DUST_THRESHOLD) {
+      outputs.push({ lockingBytecode, valueSatoshis: BigInt(change) });
+    }
+
+    const inputs = selected.map((utxo) => ({
+      outpointTransactionHash: fromHex(utxo.txid).reverse(),
+      outpointIndex: utxo.vout,
+      sequenceNumber: 0xffffffff,
+      unlockingBytecode: new Uint8Array(0),
+    }));
+
+    const tx = { version: 2, inputs, outputs, locktime: 0 };
+    const unsignedHex = toHex(encodeTransactionBCH(tx));
+
+    const sourceOutputs = selected.map((utxo) => ({
+      satoshis: BigInt(utxo.satoshis),
+      lockingBytecode,
+    }));
+
+    const signedHex = await this.config.walletProvider!.signTransaction(
+      unsignedHex,
+      sourceOutputs
+    );
+
+    // Derive the txid from the signed transaction bytes
+    const signedBytes = fromHex(signedHex);
+    const txid = toHex(hash256(signedBytes).reverse());
+    return { hex: signedHex, txid, fee };
+  }
+
   /** Derive the P2PKH locking bytecode from the configured private key. */
   private deriveLockingBytecode(): Uint8Array {
-    const privKeyBin = fromHex(this.config.privateKey);
+    const privKeyBin = fromHex(this.config.privateKey!);
     const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
     if (typeof pubKey === "string") {
       throw new MintCoreError(`Invalid private key: ${pubKey}`);
@@ -195,8 +292,27 @@ export class TransactionBuilder {
     return encodeLockingBytecodeP2pkh(pkh);
   }
 
+  /**
+   * Return the P2PKH locking bytecode, preferring the wallet provider address
+   * when no private key is configured.
+   */
+  private async getLockingBytecode(): Promise<Uint8Array> {
+    if (!this.config.privateKey && this.config.walletProvider) {
+      const address = await this.config.walletProvider.getAddress();
+      const decoded = decodeCashAddress(address);
+      if (typeof decoded === "string") {
+        throw new MintCoreError(`Failed to decode wallet address: ${decoded}`);
+      }
+      return encodeLockingBytecodeP2pkh(decoded.payload);
+    }
+    return this.deriveLockingBytecode();
+  }
+
   /** Derive the CashAddress for the configured network and private key. */
   private deriveAddressFromConfig(): string {
+    if (!this.config.privateKey) {
+      throw new MintCoreError("Cannot derive address: no private key configured.");
+    }
     const lockingBytecode = this.deriveLockingBytecode();
     const prefixMap: Record<string, string> = {
       mainnet: CashAddressNetworkPrefix.mainnet,
@@ -220,7 +336,9 @@ export class TransactionBuilder {
         "No UTXO provider configured. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
       );
     }
-    const address = this.deriveAddressFromConfig();
+    const address = this.config.walletProvider && !this.config.privateKey
+      ? await this.config.walletProvider.getAddress()
+      : this.deriveAddressFromConfig();
     return this.utxoProvider.fetchUtxos(address);
   }
 

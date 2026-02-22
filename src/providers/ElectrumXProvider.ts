@@ -68,6 +68,44 @@ export class ElectrumXProvider {
     }
   }
 
+  /**
+   * Broadcast a signed raw transaction to the network via an ElectrumX-compatible
+   * REST endpoint.
+   *
+   * Expected endpoint: POST ${baseUrl}/tx/broadcast
+   * Accepted body:     { "rawTx": "<hex>" }
+   * Accepted response: { "txid": "<txid>" } or a plain txid string
+   *
+   * @param txHex - Fully-signed transaction hex string.
+   * @returns The broadcast transaction ID.
+   */
+  async broadcastTransaction(txHex: string): Promise<string> {
+    try {
+      const url = `${this.baseUrl.replace(/\/+$/, "")}/tx/broadcast`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawTx: txHex }),
+      });
+
+      if (!res.ok) {
+        throw new MintCoreError(
+          `ElectrumX broadcast failed with status ${res.status}`
+        );
+      }
+
+      const data = await res.json();
+      // Accept { txid: "..." } or { result: "..." } or a plain string
+      if (typeof data === "string") return data;
+      return data.txid ?? data.result ?? "";
+    } catch (err: any) {
+      if (err instanceof MintCoreError) throw err;
+      throw new MintCoreError(
+        `ElectrumX broadcast failed: ${err?.message ?? String(err)}`
+      );
+    }
+  }
+
   private buildUtxoUrl(address: string): string {
     return `${this.baseUrl.replace(/\/+$/, "")}/address/${address}/unspent`;
   }
