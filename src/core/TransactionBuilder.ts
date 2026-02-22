@@ -55,26 +55,21 @@ export class TransactionBuilder {
 
     const lockingBytecode = await this.getLockingBytecode();
 
-    // Wallet-provider path (no raw private key needed)
+    if (!this.utxoProvider) {
+      return this.buildOfflineTransaction(schema, lockingBytecode);
+    }
+
     if (this.config.walletProvider && !this.config.privateKey) {
-      if (!this.utxoProvider) {
-        return this.buildOfflineTransaction(schema, lockingBytecode);
-      }
       return this.buildWalletFundedTransaction(schema, lockingBytecode);
     }
 
-    // Private-key path (existing behaviour)
     const privKeyBin = fromHex(this.config.privateKey!);
     const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
     if (typeof pubKey === "string") {
       throw new MintCoreError(`Invalid private key: ${pubKey}`);
     }
 
-    if (this.utxoProvider) {
-      return this.buildFundedTransaction(schema, lockingBytecode, privKeyBin, pubKey);
-    }
-
-    return this.buildOfflineTransaction(schema, lockingBytecode);
+    return this.buildFundedTransaction(schema, lockingBytecode, privKeyBin, pubKey);
   }
 
   /**
@@ -145,6 +140,92 @@ export class TransactionBuilder {
     privKeyBin: Uint8Array,
     pubKey: Uint8Array
   ): Promise<BuiltTransaction> {
+    const { tx, selected, fee } = await this.prepareFundedTransaction(schema, lockingBytecode);
+
+    // Source outputs (the UTXOs being spent) – needed for sighash computation
+    const sourceOutputs = selected.map((utxo) => ({
+      lockingBytecode,
+      valueSatoshis: BigInt(utxo.satoshis),
+    }));
+
+    // Sign each input with P2PKH ECDSA (DER encoding) + SIGHASH_ALL|FORKID
+    for (let i = 0; i < tx.inputs.length; i++) {
+      const context = { inputIndex: i, sourceOutputs, transaction: tx };
+      const signingData = generateSigningSerializationBCH(context, {
+        coveredBytecode: lockingBytecode,
+        signingSerializationType: SIGHASH_ALL_FORKID,
+      });
+      const msgHash = hash256(signingData);
+      const derSig = secp256k1.signMessageHashDER(privKeyBin, msgHash);
+      if (typeof derSig === "string") {
+        throw new MintCoreError(`Failed to sign input ${i}: ${derSig}`);
+      }
+      const sigWithHashType = new Uint8Array([...derSig, SIGHASH_ALL_FORKID[0]]);
+      tx.inputs[i].unlockingBytecode = new Uint8Array([
+        ...encodeDataPush(sigWithHashType),
+        ...encodeDataPush(pubKey),
+      ]);
+    }
+
+    const txBytes = encodeTransactionBCH(tx);
+    const txid = hash256(txBytes).reverse();
+    return { hex: toHex(txBytes), txid: toHex(txid), fee };
+  }
+
+  /**
+   * Build a funded transaction and have the configured wallet provider sign it.
+   *
+   * The unsigned transaction is serialised, handed to the wallet via
+   * `walletProvider.signTransaction()`, and the signed result is returned.
+   */
+  private async buildWalletFundedTransaction(
+    schema: TokenSchema,
+    lockingBytecode: Uint8Array
+  ): Promise<BuiltTransaction> {
+    const { tx, selected, fee } = await this.prepareFundedTransaction(schema, lockingBytecode);
+
+    const unsignedHex = toHex(encodeTransactionBCH(tx));
+
+    const sourceOutputs = selected.map((utxo) => ({
+      satoshis: BigInt(utxo.satoshis),
+      lockingBytecode,
+    }));
+
+    const signedHex = await this.config.walletProvider!.signTransaction(
+      unsignedHex,
+      sourceOutputs
+    );
+
+    // Derive the txid from the signed transaction bytes
+    const signedBytes = fromHex(signedHex);
+    const txid = toHex(hash256(signedBytes).reverse());
+    return { hex: signedHex, txid, fee };
+  }
+
+  /**
+   * Shared helper: fetch UTXOs, select coins, and build the unsigned funded
+   * transaction structure (inputs + outputs). Used by both
+   * `buildFundedTransaction` (private-key signing) and
+   * `buildWalletFundedTransaction` (wallet-provider signing).
+   */
+  private async prepareFundedTransaction(
+    schema: TokenSchema,
+    lockingBytecode: Uint8Array
+  ): Promise<{
+    tx: {
+      version: number;
+      inputs: Array<{
+        outpointTransactionHash: Uint8Array;
+        outpointIndex: number;
+        sequenceNumber: number;
+        unlockingBytecode: Uint8Array;
+      }>;
+      outputs: Array<{ lockingBytecode: Uint8Array; valueSatoshis: bigint; token?: any }>;
+      locktime: number;
+    };
+    selected: Utxo[];
+    fee: number;
+  }> {
     const utxos = await this.fetchUtxos();
     if (utxos.length === 0) {
       throw new MintCoreError("No UTXOs available for minting");
@@ -185,100 +266,8 @@ export class TransactionBuilder {
       unlockingBytecode: new Uint8Array(0),
     }));
 
-    // Source outputs (the UTXOs being spent) – needed for sighash computation
-    const sourceOutputs = selected.map((utxo) => ({
-      lockingBytecode,
-      valueSatoshis: BigInt(utxo.satoshis),
-    }));
-
     const tx = { version: 2, inputs, outputs, locktime: 0 };
-
-    // Sign each input with P2PKH ECDSA (DER encoding) + SIGHASH_ALL|FORKID
-    for (let i = 0; i < inputs.length; i++) {
-      const context = { inputIndex: i, sourceOutputs, transaction: tx };
-      const signingData = generateSigningSerializationBCH(context, {
-        coveredBytecode: lockingBytecode,
-        signingSerializationType: SIGHASH_ALL_FORKID,
-      });
-      const msgHash = hash256(signingData);
-      const derSig = secp256k1.signMessageHashDER(privKeyBin, msgHash);
-      if (typeof derSig === "string") {
-        throw new MintCoreError(`Failed to sign input ${i}: ${derSig}`);
-      }
-      const sigWithHashType = new Uint8Array([...derSig, SIGHASH_ALL_FORKID[0]]);
-      tx.inputs[i].unlockingBytecode = new Uint8Array([
-        ...encodeDataPush(sigWithHashType),
-        ...encodeDataPush(pubKey),
-      ]);
-    }
-
-    const txBytes = encodeTransactionBCH(tx);
-    const txid = hash256(txBytes).reverse();
-    return { hex: toHex(txBytes), txid: toHex(txid), fee };
-  }
-
-  /**
-   * Build a funded transaction and have the configured wallet provider sign it.
-   *
-   * The unsigned transaction is serialised, handed to the wallet via
-   * `walletProvider.signTransaction()`, and the signed result is returned.
-   */
-  private async buildWalletFundedTransaction(
-    schema: TokenSchema,
-    lockingBytecode: Uint8Array
-  ): Promise<BuiltTransaction> {
-    const utxos = await this.fetchUtxos();
-    if (utxos.length === 0) {
-      throw new MintCoreError("No UTXOs available for minting");
-    }
-
-    const feeRate = this.config.feeRate ?? DEFAULT_FEE_RATE;
-    const nonChangeOutputCount = 1 + (schema.bcmrUri ? 1 : 0);
-
-    const { selected, fee, change } = selectUtxos(
-      utxos,
-      TOKEN_OUTPUT_DUST,
-      nonChangeOutputCount,
-      feeRate,
-      true
-    );
-
-    const categoryHash = fromHex(selected[0].txid).reverse();
-
-    const outputs = [
-      this.buildTokenOutput(schema, lockingBytecode, categoryHash, TOKEN_OUTPUT_DUST),
-    ];
-    if (schema.bcmrUri) {
-      outputs.push(this.buildBcmrOutput(schema.bcmrUri));
-    }
-    if (change > DUST_THRESHOLD) {
-      outputs.push({ lockingBytecode, valueSatoshis: BigInt(change) });
-    }
-
-    const inputs = selected.map((utxo) => ({
-      outpointTransactionHash: fromHex(utxo.txid).reverse(),
-      outpointIndex: utxo.vout,
-      sequenceNumber: 0xffffffff,
-      unlockingBytecode: new Uint8Array(0),
-    }));
-
-    const tx = { version: 2, inputs, outputs, locktime: 0 };
-    const unsignedHex = toHex(encodeTransactionBCH(tx));
-
-    const sourceOutputs = selected.map((utxo) => ({
-      satoshis: BigInt(utxo.satoshis),
-      lockingBytecode,
-    }));
-
-    const signedHex = await this.config.walletProvider!.signTransaction(
-      unsignedHex,
-      sourceOutputs
-    );
-
-    // Derive the txid from the signed transaction bytes
-    const signedBytes = fromHex(signedHex);
-    const txid = toHex(hash256(signedBytes).reverse());
-    return { hex: signedHex, txid, fee };
+    return { tx, selected, fee };
   }
 
   /** Derive the P2PKH locking bytecode from the configured private key. */
