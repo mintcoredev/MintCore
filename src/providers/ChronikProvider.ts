@@ -29,6 +29,34 @@ export class ChronikProvider {
     }
   }
 
+  /**
+   * Broadcast a signed raw transaction to the network via Chronik.
+   *
+   * @param txHex - Fully-signed transaction hex string.
+   * @returns The broadcast transaction ID.
+   */
+  async broadcastTransaction(txHex: string): Promise<string> {
+    try {
+      const url = `${this.baseUrl.replace(/\/+$/, "")}/broadcast-txs`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawTxs: [txHex] }),
+      });
+
+      if (!res.ok) {
+        throw new MintCoreError(`Chronik broadcast failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      // Chronik returns { txids: ["<txid>"] }
+      return data.txids?.[0] ?? data.txid ?? "";
+    } catch (err: any) {
+      if (err instanceof MintCoreError) throw err;
+      throw new MintCoreError(`Chronik broadcast failed: ${err?.message ?? String(err)}`);
+    }
+  }
+
   private buildUtxoUrl(address: string): string {
     // Example shape – update to match your Chronik deployment if needed.
     // Common pattern: `${baseUrl}/address/${address}/utxos`
