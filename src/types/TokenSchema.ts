@@ -12,4 +12,10 @@ export interface TokenSchema {
   initialSupply: bigint;
   metadata?: Record<string, any>;
   nft?: NftOptions;
+  /**
+   * BCMR (Bitcoin Cash Metadata Registry) URI or IPFS CID to attach as an
+   * OP_RETURN output in the genesis transaction.
+   * e.g. "ipfs://bafybei..." or "https://example.com/token.json"
+   */
+  bcmrUri?: string;
 }

@@ -51,4 +51,15 @@ export function validateSchema(schema: TokenSchema): void {
       );
     }
   }
+  if (schema.bcmrUri !== undefined) {
+    if (typeof schema.bcmrUri !== "string" || schema.bcmrUri.trim().length === 0) {
+      throw new MintCoreError("bcmrUri must be a non-empty string");
+    }
+    const uriBytes = new TextEncoder().encode(schema.bcmrUri);
+    if (uriBytes.length > 220) {
+      throw new MintCoreError(
+        `bcmrUri is too long: ${uriBytes.length} bytes (max 220 bytes)`
+      );
+    }
+  }
 }

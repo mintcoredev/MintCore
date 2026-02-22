@@ -19,4 +19,6 @@ export interface TokenOutput {
 export interface BuiltTransaction {
   hex: string;
   txid: string;
+  /** Fee paid in satoshis. Only present when a UTXO provider was used. */
+  fee?: number;
 }
