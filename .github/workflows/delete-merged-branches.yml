@@ -1,0 +1,55 @@
+name: Delete merged branches
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  delete-merged-branch:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete merged branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+
+            // On workflow_dispatch, clean up any stale merged branches
+            if (context.eventName === 'workflow_dispatch') {
+              const branches = await github.paginate(github.rest.repos.listBranches, { owner, repo });
+              const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'closed' });
+              const mergedHeads = new Set(
+                prs.filter(pr => pr.merged_at).map(pr => pr.head.ref)
+              );
+              const defaultBranch = context.payload.repository?.default_branch ?? 'main';
+              for (const branch of branches) {
+                if (branch.name !== defaultBranch && mergedHeads.has(branch.name)) {
+                  try {
+                    await github.rest.git.deleteRef({ owner, repo, ref: `heads/${branch.name}` });
+                    core.info(`Deleted stale merged branch: ${branch.name}`);
+                  } catch (err) {
+                    core.warning(`Could not delete ${branch.name}: ${err.message}`);
+                  }
+                }
+              }
+              return;
+            }
+
+            // On pull_request closed+merged, delete the head branch
+            const branchName = context.payload.pull_request.head.ref;
+            const defaultBranch = context.payload.repository?.default_branch ?? 'main';
+            if (branchName === defaultBranch) {
+              core.info('Head branch is the default branch – skipping deletion.');
+              return;
+            }
+            try {
+              await github.rest.git.deleteRef({ owner, repo, ref: `heads/${branchName}` });
+              core.info(`Deleted branch: ${branchName}`);
+            } catch (err) {
+              core.warning(`Could not delete branch ${branchName}: ${err.message}`);
+            }
