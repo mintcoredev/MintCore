@@ -1,5 +1,6 @@
 import { Token } from "../../../shared/types.js";
 
+// In-memory store — development only; data is lost on server restart.
 const tokens: Token[] = [];
 
 export function addToken(token: Token): void {
