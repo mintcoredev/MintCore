@@ -1,12 +1,10 @@
+import { randomUUID } from "crypto";
 import { MintRequest, MintResponse, ValidationResult } from "../../../shared/types.js";
-
-let tokenCounter = 0;
 
 export async function mintTokens(req: MintRequest): Promise<MintResponse> {
   // Placeholder – replace with real MintCore calls:
   // import { mintFungibleToken, mintNFT } from "mintcore";
-  tokenCounter += 1;
-  const tokenId = `token-${Date.now()}-${tokenCounter}`;
+  const tokenId = `token-${randomUUID()}`;
   const rawTx = `placeholder-tx-${tokenId}`;
   return { rawTx, tokenId };
 }

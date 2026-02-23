@@ -26,6 +26,8 @@ export async function verifyMint(
   _config: MintConfig,
   txid: string
 ): Promise<boolean> {
+  // Placeholder: validates txid format only (64 hex characters).
+  // Replace with real on-chain verification via MintCore / ChronikProvider.
   if (!txid || typeof txid !== "string") return false;
   return /^[0-9a-f]{64}$/i.test(txid);
 }

@@ -52,7 +52,7 @@ export function Dashboard() {
           <p style={{ color: "var(--text-secondary)" }}>No tokens minted yet.</p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
-            {tokens.slice(-6).map((t) => (
+            {[...tokens].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 6).map((t) => (
               <TokenCard key={t.id} token={t} />
             ))}
           </div>
