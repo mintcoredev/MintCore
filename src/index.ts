@@ -8,6 +8,7 @@ export * from "./core/MintResult";
 export * from "./types/TransactionTypes";
 
 export { MintCoreError } from "./utils/errors";
+export { mintFungibleToken, mintNFT, verifyMint, createMetadata, encodeMetadata } from "./utils/convenience";
 export { validateSchema } from "./utils/validate";
 export { TransactionBuilder } from "./core/TransactionBuilder";
 export { ChronikProvider } from "./providers/ChronikProvider";
