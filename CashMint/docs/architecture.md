@@ -15,7 +15,7 @@ CashMint is a full-stack TypeScript application providing a premium UI/UX layer 
 ## Directory Structure
 
 ```
-cashmint/
+CashMint/
   backend/   → Express REST API
   frontend/  → React SPA
   shared/    → Shared TypeScript types
