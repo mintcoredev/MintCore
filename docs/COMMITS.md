@@ -43,6 +43,7 @@ Use the module or area of the codebase affected. Common scopes in MintCore:
 |-------|------|
 | `engine` | Core minting engine (`src/core/`) |
 | `hex` | Hex encoding/decoding utilities (`src/utils/`) |
+| `keys` | Key management and wallet utilities (`src/utils/keys.ts`) |
 | `ft` | Fungible token logic |
 | `nft` | Non-fungible token logic |
 | `cli` | Command-line interface / example scripts |
