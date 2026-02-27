@@ -87,7 +87,7 @@ describe("mintNFT", () => {
     expect(result.txid).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it("throws a plain Error (not MintCoreError) when nft options are missing", async () => {
+  it("throws MintCoreError when nft options are missing", async () => {
     await expect(
       mintNFT(baseConfig, {
         name: "T",
@@ -96,7 +96,7 @@ describe("mintNFT", () => {
         initialSupply: 0n,
         // no nft field
       })
-    ).rejects.toThrow("NFT options are required for mintNFT");
+    ).rejects.toThrow(new MintCoreError("NFT options are required for mintNFT"));
   });
 
   it("throws MintCoreError for an invalid NFT capability", async () => {

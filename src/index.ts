@@ -1,18 +1,19 @@
-export { MintEngine } from "./core/MintEngine";
-export { LibauthAdapter } from "./adapters/LibauthAdapter";
+export { MintEngine } from "./core/MintEngine.js";
+export { LibauthAdapter } from "./adapters/LibauthAdapter.js";
 
-export * from "./types/MintConfig";
-export * from "./types/TokenSchema";
-export * from "./types/WalletProvider";
-export * from "./core/MintResult";
-export * from "./types/TransactionTypes";
+export * from "./types/MintConfig.js";
+export * from "./types/TokenSchema.js";
+export * from "./types/WalletProvider.js";
+export * from "./core/MintResult.js";
+export * from "./types/TransactionTypes.js";
 
-export { MintCoreError } from "./utils/errors";
-export { mintFungibleToken, mintNFT, verifyMint, createMetadata, encodeMetadata } from "./utils/convenience";
-export { validateSchema } from "./utils/validate";
-export { TransactionBuilder } from "./core/TransactionBuilder";
-export { ChronikProvider } from "./providers/ChronikProvider";
-export { ElectrumXProvider } from "./providers/ElectrumXProvider";
-export { estimateFee, DEFAULT_FEE_RATE, TOKEN_OUTPUT_DUST, DUST_THRESHOLD } from "./utils/fee";
-export { selectUtxos } from "./utils/coinselect";
-export type { CoinSelectResult } from "./utils/coinselect";
+export { MintCoreError } from "./utils/errors.js";
+export { mintFungibleToken, mintNFT, verifyMint, createMetadata, encodeMetadata } from "./utils/convenience.js";
+export { validateSchema } from "./utils/validate.js";
+export { TransactionBuilder } from "./core/TransactionBuilder.js";
+export { ChronikProvider } from "./providers/ChronikProvider.js";
+export { ElectrumXProvider } from "./providers/ElectrumXProvider.js";
+export { estimateFee, DEFAULT_FEE_RATE, TOKEN_OUTPUT_DUST, DUST_THRESHOLD } from "./utils/fee.js";
+export { selectUtxos } from "./utils/coinselect.js";
+export type { CoinSelectResult } from "./utils/coinselect.js";
+export { VERSION } from "./version.js";

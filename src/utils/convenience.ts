@@ -2,6 +2,7 @@ import { MintConfig } from "../types/MintConfig.js";
 import { TokenSchema } from "../types/TokenSchema.js";
 import { MintResult } from "../core/MintResult.js";
 import { MintEngine } from "../core/MintEngine.js";
+import { MintCoreError } from "./errors.js";
 
 export async function mintFungibleToken(
   config: MintConfig,
@@ -16,7 +17,7 @@ export async function mintNFT(
   schema: TokenSchema
 ): Promise<MintResult> {
   if (!schema.nft) {
-    throw new Error("NFT options are required for mintNFT");
+    throw new MintCoreError("NFT options are required for mintNFT");
   }
   const engine = new MintEngine(config);
   return engine.mint(schema);

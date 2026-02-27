@@ -1,5 +1,5 @@
-import type { Utxo } from "../types/TransactionTypes";
-import { MintCoreError } from "../utils/errors";
+import type { Utxo } from "../types/TransactionTypes.js";
+import { MintCoreError } from "../utils/errors.js";
 
 /**
  * ElectrumX / Fulcrum HTTP REST UTXO provider.
@@ -45,7 +45,7 @@ export class ElectrumXProvider {
         );
       }
 
-      const data = await res.json();
+      const data = await res.json() as any;
 
       // Support both a bare array and a `{ result: [...] }` wrapper.
       const items: ElectrumXUtxo[] = Array.isArray(data)
@@ -94,7 +94,7 @@ export class ElectrumXProvider {
         );
       }
 
-      const data = await res.json();
+      const data = await res.json() as any;
       // Accept { txid: "..." } or { result: "..." } or a plain string
       if (typeof data === "string") return data;
       return data.txid ?? data.result ?? "";
