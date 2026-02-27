@@ -4,4 +4,6 @@ export const toHex = (buffer: Uint8Array): string =>
     .join("");
 
 export const fromHex = (hex: string): Uint8Array =>
-  new Uint8Array(hex.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+  hex.length === 0
+    ? new Uint8Array(0)
+    : new Uint8Array(hex.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
