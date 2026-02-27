@@ -1,5 +1,7 @@
 export { MintEngine } from "./core/MintEngine";
 export { LibauthAdapter } from "./adapters/LibauthAdapter";
+export { FlipstarterBuilder } from "./core/FlipstarterBuilder";
+export * from "./types/FlipstarterTypes";
 
 export * from "./types/MintConfig";
 export * from "./types/TokenSchema";
