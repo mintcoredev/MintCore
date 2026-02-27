@@ -46,6 +46,9 @@ Use the module or area of the codebase affected. Common scopes in MintCore:
 | `ft` | Fungible token logic |
 | `nft` | Non-fungible token logic |
 | `cli` | Command-line interface / example scripts |
+| `chronik` | Chronik blockchain indexer provider (`src/providers/`) |
+| `metadata` | Token metadata handling |
+| `utils` | Shared utility functions (`src/utils/`) |
 | `deps` | Dependency changes |
 | `release` | Release-process changes |
 
