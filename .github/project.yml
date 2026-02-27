@@ -1,0 +1,32 @@
+name: MintCore Roadmap
+body: >
+  Tracks all open issues and pull requests across the MintCore project,
+  from unprioritized ideas through active development to completion.
+
+columns:
+  - name: Backlog
+    description: >
+      Unprioritized ideas, feature requests, and future improvements waiting
+      to be scheduled.
+    automation:
+      - event: issues.opened
+        action: add_to_column
+      - event: issues.reopened
+        action: add_to_column
+
+  - name: In Progress
+    description: >
+      Work that is actively being developed in an open pull request or an
+      assigned issue.
+    automation:
+      - event: pull_request.opened
+        action: add_to_column
+      - event: pull_request.reopened
+        action: add_to_column
+
+  - name: Done
+    description: >
+      Completed tasks whose pull requests have been merged into main.
+    automation:
+      - event: pull_request.merged
+        action: move_to_column
