@@ -1,3 +1,16 @@
+# ⚡ cashmint-flipstarter
+
+This repository hosts the Flipstarter crowdfunding campaign for **CashMint** — a user-friendly CashTokens minting platform built on Bitcoin Cash.
+
+## Campaign
+
+| File | Description |
+|------|-------------|
+| [`campaigns/cashmint/campaign.json`](campaigns/cashmint/campaign.json) | Machine-readable campaign data (goal, milestones, recipients) |
+| [`campaigns/cashmint/index.html`](campaigns/cashmint/index.html) | Campaign landing page |
+
+---
+
 📦 MintCore — TypeScript SDK for Bitcoin Cash CashTokens
 
 MintCore is a fully‑featured, production‑ready TypeScript SDK for building, minting, signing, and broadcasting CashTokens transactions on Bitcoin Cash.  
