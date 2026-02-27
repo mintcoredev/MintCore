@@ -11,20 +11,20 @@ import {
   NonFungibleTokenCapability,
   CashAddressNetworkPrefix,
 } from "@bitauth/libauth";
-import { MintConfig } from "../types/MintConfig";
-import { TokenSchema } from "../types/TokenSchema";
-import { Utxo, BuiltTransaction } from "../types/TransactionTypes";
-import { ChronikProvider } from "../providers/ChronikProvider";
-import { ElectrumXProvider } from "../providers/ElectrumXProvider";
-import { MintCoreError } from "../utils/errors";
-import { fromHex, toHex } from "../utils/hex";
+import { MintConfig } from "../types/MintConfig.js";
+import { TokenSchema } from "../types/TokenSchema.js";
+import { Utxo, BuiltTransaction } from "../types/TransactionTypes.js";
+import { ChronikProvider } from "../providers/ChronikProvider.js";
+import { ElectrumXProvider } from "../providers/ElectrumXProvider.js";
+import { MintCoreError } from "../utils/errors.js";
+import { fromHex, toHex } from "../utils/hex.js";
 import {
   estimateFee,
   DEFAULT_FEE_RATE,
   TOKEN_OUTPUT_DUST,
   DUST_THRESHOLD,
-} from "../utils/fee";
-import { selectUtxos } from "../utils/coinselect";
+} from "../utils/fee.js";
+import { selectUtxos } from "../utils/coinselect.js";
 
 /** BCH SIGHASH_ALL | SIGHASH_FORKID (0x41) */
 const SIGHASH_ALL_FORKID = new Uint8Array([0x41]);
@@ -98,7 +98,7 @@ export class TransactionBuilder {
   ): BuiltTransaction {
     const genesisTxid = new Uint8Array(32);
 
-    const outputs = [
+    const outputs: Array<{ lockingBytecode: Uint8Array; valueSatoshis: bigint; token?: any }> = [
       this.buildTokenOutput(schema, lockingBytecode, genesisTxid, TOKEN_OUTPUT_DUST),
     ];
     if (schema.bcmrUri) {
@@ -248,7 +248,7 @@ export class TransactionBuilder {
     const categoryHash = fromHex(selected[0].txid).reverse();
 
     // Build outputs
-    const outputs = [
+    const outputs: Array<{ lockingBytecode: Uint8Array; valueSatoshis: bigint; token?: any }> = [
       this.buildTokenOutput(schema, lockingBytecode, categoryHash, TOKEN_OUTPUT_DUST),
     ];
     if (schema.bcmrUri) {
@@ -259,7 +259,7 @@ export class TransactionBuilder {
     }
 
     // Build unsigned inputs
-    const inputs = selected.map((utxo) => ({
+    const inputs = selected.map((utxo: Utxo) => ({
       outpointTransactionHash: fromHex(utxo.txid).reverse(),
       outpointIndex: utxo.vout,
       sequenceNumber: 0xffffffff,
@@ -303,7 +303,7 @@ export class TransactionBuilder {
       throw new MintCoreError("Cannot derive address: no private key configured.");
     }
     const lockingBytecode = this.deriveLockingBytecode();
-    const prefixMap: Record<string, string> = {
+    const prefixMap: Record<string, CashAddressNetworkPrefix> = {
       mainnet: CashAddressNetworkPrefix.mainnet,
       testnet: CashAddressNetworkPrefix.testnet,
       regtest: CashAddressNetworkPrefix.regtest,

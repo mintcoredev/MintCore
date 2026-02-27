@@ -1,4 +1,4 @@
-import type { WalletProvider } from "./WalletProvider";
+import type { WalletProvider } from "./WalletProvider.js";
 
 export interface MintConfig {
   network: "mainnet" | "testnet" | "regtest";

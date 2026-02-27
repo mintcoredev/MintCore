@@ -1,5 +1,5 @@
-import type { Utxo } from "../types/TransactionTypes";
-import { MintCoreError } from "../utils/errors";
+import type { Utxo } from "../types/TransactionTypes.js";
+import { MintCoreError } from "../utils/errors.js";
 
 export class ChronikProvider {
   constructor(
@@ -20,7 +20,7 @@ export class ChronikProvider {
         throw new MintCoreError(`Chronik UTXO request failed with status ${res.status}`);
       }
 
-      const data = await res.json();
+      const data = await res.json() as any;
 
       // Adjust mapping if your Chronik instance uses a different shape
       return (data.utxos ?? data) as Utxo[];
@@ -48,7 +48,7 @@ export class ChronikProvider {
         throw new MintCoreError(`Chronik broadcast failed with status ${res.status}`);
       }
 
-      const data = await res.json();
+      const data = await res.json() as any;
       // Chronik returns { txids: ["<txid>"] }
       return data.txids?.[0] ?? data.txid ?? "";
     } catch (err: any) {
