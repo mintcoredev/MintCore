@@ -1,0 +1,18 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: "\U0001F41B Bug report \u2192 Backlog"
+    url: https://github.com/mintcoredev/MintCore/issues/new?template=bug_report.md
+    about: Report a bug. The issue will be automatically added to the Backlog column.
+
+  - name: "\u2728 Feature request \u2192 Backlog"
+    url: https://github.com/mintcoredev/MintCore/issues/new?template=feature_request.md
+    about: >
+      Suggest a new feature or enhancement. The issue will be automatically
+      added to the Backlog column.
+
+  - name: "\u26A0\uFE0F Breaking change proposal \u2192 Backlog"
+    url: https://github.com/mintcoredev/MintCore/issues/new?template=breaking_change.md&labels=breaking-change
+    about: >
+      Propose a change that breaks backward compatibility. The issue will be
+      automatically added to the Backlog column and labelled "breaking-change".
