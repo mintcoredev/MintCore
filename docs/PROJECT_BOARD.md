@@ -99,7 +99,7 @@ New issue opened
 
 ## Further Reading
 
-* [CONTRIBUTING.md](CONTRIBUTING.md) — full PR flow, branch naming, commit
+* [CONTRIBUTING.md](../CONTRIBUTING.md) — full PR flow, branch naming, commit
   conventions, and local setup.
 * [VERSIONING.md](VERSIONING.md) — how MintCore versions its releases.
 * [COMMITS.md](COMMITS.md) — Conventional Commits reference.

@@ -110,7 +110,7 @@ npm test        # run Vitest test suite
 
 - [Versioning Policy](docs/VERSIONING.md)
 - [Commit Conventions](docs/COMMITS.md)
-- [Contributing Guide](docs/CONTRIBUTING.md)
+- [Contributing Guide](CONTRIBUTING.md)
 - [Project Board](docs/PROJECT_BOARD.md)
 - [Changelog](CHANGELOG.md)
 

@@ -63,7 +63,7 @@ There is no auto-formatter enforced yet. Please follow the style of the surround
 
 ## Commit Messages
 
-MintCore follows the [Conventional Commits](COMMITS.md) standard.
+MintCore follows the [Conventional Commits](docs/COMMITS.md) standard.
 
 Quick summary:
 
@@ -79,7 +79,7 @@ fix(hex): handle empty string in fromHex()
 docs: add FT minting example to cookbook
 ```
 
-See [docs/COMMITS.md](COMMITS.md) for the full list of types, scopes, and examples.
+See [docs/COMMITS.md](docs/COMMITS.md) for the full list of types, scopes, and examples.
 
 ---
 
@@ -99,7 +99,7 @@ See [docs/COMMITS.md](COMMITS.md) for the full list of types, scopes, and exampl
 
 ### Breaking changes
 
-Breaking changes require additional steps. See [docs/VERSIONING.md](VERSIONING.md) for the
+Breaking changes require additional steps. See [docs/VERSIONING.md](docs/VERSIONING.md) for the
 full process, including the required **Migration Guide** in the PR description.
 
 ---
@@ -126,6 +126,6 @@ npx ts-node --esm src/index.ts
 
 ## Further Reading
 
-- [Versioning Policy](VERSIONING.md) — how MintCore versions its releases
-- [Commit Conventions](COMMITS.md) — how to write commit messages
-- [CHANGELOG](../CHANGELOG.md) — history of released versions
+- [Versioning Policy](docs/VERSIONING.md) — how MintCore versions its releases
+- [Commit Conventions](docs/COMMITS.md) — how to write commit messages
+- [CHANGELOG](CHANGELOG.md) — history of released versions
