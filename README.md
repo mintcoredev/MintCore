@@ -74,6 +74,8 @@ const nftResult = await mintNFT(
 
 | Export | Description |
 |--------|-------------|
+| `generateKey()` | Generate a cryptographically secure random private key (hex string) |
+| `deriveAddress(privateKey, network)` | Derive a P2PKH CashAddress from a private key |
 | `validateSchema(schema)` | Validate a `TokenSchema`; throws `MintCoreError` on failure |
 | `estimateFee(inputs, outputs, feeRate, hasToken)` | Estimate transaction fee in satoshis |
 | `selectUtxos(utxos, required, outputs, feeRate, hasToken)` | Greedy UTXO coin selection |
@@ -84,6 +86,28 @@ const nftResult = await mintNFT(
 ### Types
 
 `MintConfig`, `TokenSchema`, `NftOptions`, `TokenCapability`, `MintResult`, `Utxo`, `BuiltTransaction`, `WalletProvider`, `CoinSelectResult`
+
+## Key Generation
+
+`generateKey` and `deriveAddress` let you create a new wallet identity (private key + address) without any external dependencies.
+
+```typescript
+import { generateKey, deriveAddress } from "mintcore";
+
+// Generate a new random private key
+const privateKey = generateKey();
+// e.g. "3b4c8f2a..." (64-character hex string)
+
+// Derive the corresponding CashAddress
+const address = deriveAddress(privateKey, "mainnet");
+// e.g. "bitcoincash:qp63uahgrxged4z5jswyt5dn5v3lzsem6c6mz8vuwd"
+
+// Use the key immediately for minting
+const result = await mintFungibleToken(
+  { network: "mainnet", privateKey },
+  { name: "My Token", symbol: "MTK", decimals: 2, initialSupply: 1_000_000n }
+);
+```
 
 ## MintConfig
 

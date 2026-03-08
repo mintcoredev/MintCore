@@ -11,6 +11,9 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ### Added
 
+- `generateKey()` — generates a cryptographically secure random 32-byte private key as a hex string.
+- `deriveAddress(privateKey, network)` — derives a P2PKH CashAddress from a private key for mainnet, testnet, or regtest.
+
 ### Changed
 
 ### Fixed

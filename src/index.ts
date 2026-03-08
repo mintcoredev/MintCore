@@ -17,3 +17,4 @@ export { estimateFee, DEFAULT_FEE_RATE, TOKEN_OUTPUT_DUST, DUST_THRESHOLD } from
 export { selectUtxos } from "./utils/coinselect.js";
 export type { CoinSelectResult } from "./utils/coinselect.js";
 export { VERSION } from "./version.js";
+export { generateKey, deriveAddress } from "./utils/keys.js";
