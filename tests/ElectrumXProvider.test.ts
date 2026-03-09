@@ -126,6 +126,69 @@ describe("ElectrumXProvider", () => {
       `https://fulcrum.example.com/address/${TEST_ADDRESS}/unspent`
     );
   });
+
+  it("throws MintCoreError when constructed with an invalid URL", () => {
+    expect(() => new ElectrumXProvider("not a url", "mainnet")).toThrow(MintCoreError);
+    expect(() => new ElectrumXProvider("not a url", "mainnet")).toThrow(
+      "Invalid ElectrumX provider URL"
+    );
+  });
+
+  it("throws MintCoreError when constructed with a non-HTTPS URL on mainnet", () => {
+    expect(() => new ElectrumXProvider("http://example.com", "mainnet")).toThrow(
+      MintCoreError
+    );
+    expect(() => new ElectrumXProvider("http://example.com", "mainnet")).toThrow(
+      "HTTPS"
+    );
+  });
+
+  it("allows http://localhost for local development", () => {
+    expect(() => new ElectrumXProvider("http://localhost:50002", "regtest")).not.toThrow();
+  });
+
+  it("allows http://127.0.0.1 for local development", () => {
+    expect(
+      () => new ElectrumXProvider("http://127.0.0.1:50002", "regtest")
+    ).not.toThrow();
+  });
+
+  it("throws MintCoreError when the server returns an error field", async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ error: "backend offline" }),
+    });
+
+    const provider = new ElectrumXProvider(BASE_URL, "mainnet");
+    await expect(provider.fetchUtxos(TEST_ADDRESS)).rejects.toThrow(MintCoreError);
+    await expect(provider.fetchUtxos(TEST_ADDRESS)).rejects.toThrow("backend offline");
+  });
+
+  it("throws MintCoreError when result is null", async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: null }),
+    });
+
+    const provider = new ElectrumXProvider(BASE_URL, "mainnet");
+    await expect(provider.fetchUtxos(TEST_ADDRESS)).rejects.toThrow(MintCoreError);
+    await expect(provider.fetchUtxos(TEST_ADDRESS)).rejects.toThrow(
+      "malformed UTXO list"
+    );
+  });
+
+  it("throws MintCoreError when response is an empty object {}", async () => {
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    const provider = new ElectrumXProvider(BASE_URL, "mainnet");
+    await expect(provider.fetchUtxos(TEST_ADDRESS)).rejects.toThrow(MintCoreError);
+    await expect(provider.fetchUtxos(TEST_ADDRESS)).rejects.toThrow(
+      "malformed UTXO list"
+    );
+  });
 });
 
 describe("TransactionBuilder with ElectrumX provider", () => {
