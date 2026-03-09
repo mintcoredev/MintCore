@@ -9,6 +9,8 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ## [Unreleased]
 
+> All changes are internal hardening only; the public MintCore API and transaction formats are unchanged.
+
 ### Added
 
 - `generateKey()` — generates a cryptographically secure random 32-byte private key as a hex string.
@@ -17,6 +19,12 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 ### Changed
 
 ### Fixed
+
+- **Key zeroing** — private key bytes are cleared from memory immediately after signing to reduce the key's exposure window.
+- **Address validation** — `TransactionBuilder` now validates the derived CashAddress before using it, throwing a `MintCoreError` with a descriptive message if the address cannot be decoded.
+- **UTXO schema guard** — Malformed entries are dropped; if every non-empty entry is malformed, the provider throws a `MintCoreError` with a clear schema message.
+- **BCMR URI length limit** — `bcmrUri` values exceeding 512 bytes are now rejected with a `MintCoreError` during schema validation.
+- **Deterministic UTXO ordering** — inputs are sorted by `txid` then `vout` before signing, ensuring a canonical and reproducible transaction layout. This makes txids reproducible across runs and providers, which simplifies snapshot tests and regression detection.
 
 ### Removed
 
