@@ -26,6 +26,9 @@ import {
 } from "../utils/fee.js";
 import { selectUtxos } from "../utils/coinselect.js";
 
+/** Maximum allowed byte-length for a BCMR URI. */
+const MAX_BCMR_URI_BYTES = 512;
+
 /** BCH SIGHASH_ALL | SIGHASH_FORKID (0x41) */
 const SIGHASH_ALL_FORKID = new Uint8Array([0x41]);
 
@@ -149,22 +152,28 @@ export class TransactionBuilder {
     }));
 
     // Sign each input with P2PKH ECDSA (DER encoding) + SIGHASH_ALL|FORKID
-    for (let i = 0; i < tx.inputs.length; i++) {
-      const context = { inputIndex: i, sourceOutputs, transaction: tx };
-      const signingData = generateSigningSerializationBCH(context, {
-        coveredBytecode: lockingBytecode,
-        signingSerializationType: SIGHASH_ALL_FORKID,
-      });
-      const msgHash = hash256(signingData);
-      const derSig = secp256k1.signMessageHashDER(privKeyBin, msgHash);
-      if (typeof derSig === "string") {
-        throw new MintCoreError(`Failed to sign input ${i}: ${derSig}`);
+    try {
+      for (let i = 0; i < tx.inputs.length; i++) {
+        const context = { inputIndex: i, sourceOutputs, transaction: tx };
+        const signingData = generateSigningSerializationBCH(context, {
+          coveredBytecode: lockingBytecode,
+          signingSerializationType: SIGHASH_ALL_FORKID,
+        });
+        const msgHash = hash256(signingData);
+        const derSig = secp256k1.signMessageHashDER(privKeyBin, msgHash);
+        if (typeof derSig === "string") {
+          throw new MintCoreError(`Failed to sign input ${i}: ${derSig}`);
+        }
+        const sigWithHashType = new Uint8Array([...derSig, SIGHASH_ALL_FORKID[0]]);
+        tx.inputs[i].unlockingBytecode = new Uint8Array([
+          ...encodeDataPush(sigWithHashType),
+          ...encodeDataPush(pubKey),
+        ]);
       }
-      const sigWithHashType = new Uint8Array([...derSig, SIGHASH_ALL_FORKID[0]]);
-      tx.inputs[i].unlockingBytecode = new Uint8Array([
-        ...encodeDataPush(sigWithHashType),
-        ...encodeDataPush(pubKey),
-      ]);
+    } finally {
+      // Zero key material immediately after use to reduce exposure in memory
+      privKeyBin.fill(0);
+      pubKey.fill(0);
     }
 
     const txBytes = encodeTransactionBCH(tx);
@@ -244,6 +253,14 @@ export class TransactionBuilder {
       true
     );
 
+    // Sort selected UTXOs lexicographically by txid then vout for deterministic
+    // transaction construction (same UTXO set → same txid every time).
+    selected.sort((a, b) => {
+      if (a.txid < b.txid) return -1;
+      if (a.txid > b.txid) return 1;
+      return a.vout - b.vout;
+    });
+
     // The token category is the txid of the first input's outpoint (internal byte order).
     const categoryHash = fromHex(selected[0].txid).reverse();
 
@@ -292,6 +309,22 @@ export class TransactionBuilder {
       if (typeof decoded === "string") {
         throw new MintCoreError(`Failed to decode wallet address: ${decoded}`);
       }
+
+      // Validate network prefix matches configured network
+      const expectedPrefix = CashAddressNetworkPrefix[this.config.network];
+      if (decoded.prefix !== expectedPrefix) {
+        throw new MintCoreError(
+          `Wallet address network mismatch: expected prefix "${expectedPrefix}", got "${decoded.prefix}"`
+        );
+      }
+
+      // Validate address type is P2PKH (standard or token-aware variant)
+      if (decoded.type !== "p2pkh" && decoded.type !== "p2pkhWithTokens") {
+        throw new MintCoreError(
+          `Wallet address must be a P2PKH address, got type "${decoded.type}"`
+        );
+      }
+
       return encodeLockingBytecodeP2pkh(decoded.payload);
     }
     return this.deriveLockingBytecode();
@@ -386,6 +419,11 @@ export class TransactionBuilder {
    */
   private buildBcmrOutput(uri: string) {
     const uriBytes = new TextEncoder().encode(uri);
+    if (uriBytes.length > MAX_BCMR_URI_BYTES) {
+      throw new MintCoreError(
+        `BCMR URI is too long: ${uriBytes.length} bytes (max ${MAX_BCMR_URI_BYTES} bytes)`
+      );
+    }
     const lockingBytecode = new Uint8Array([
       OP_RETURN,
       ...encodeDataPush(BCMR_MARKER),

@@ -1,5 +1,6 @@
 import type { Utxo } from "../types/TransactionTypes.js";
 import { MintCoreError } from "../utils/errors.js";
+import { validateUtxo } from "../utils/validate.js";
 
 export class ChronikProvider {
   constructor(
@@ -23,7 +24,12 @@ export class ChronikProvider {
       const data = await res.json() as any;
 
       // Adjust mapping if your Chronik instance uses a different shape
-      return (data.utxos ?? data) as Utxo[];
+      const raw: unknown[] = Array.isArray(data) ? data : (data.utxos ?? []);
+      const utxos = raw.filter(validateUtxo);
+      if (raw.length > 0 && utxos.length === 0) {
+        throw new MintCoreError("Chronik returned UTXOs with an unrecognised schema");
+      }
+      return utxos;
     } catch (err: any) {
       throw new MintCoreError(`Chronik UTXO fetch failed: ${err?.message ?? String(err)}`);
     }

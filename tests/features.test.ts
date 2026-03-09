@@ -214,8 +214,8 @@ describe("validateSchema – bcmrUri", () => {
     expect(() => validateSchema({ ...base, bcmrUri: "   " })).toThrow(MintCoreError);
   });
 
-  it("throws MintCoreError for a bcmrUri that exceeds 220 bytes", () => {
-    const longUri = "https://example.com/" + "x".repeat(210);
+  it("throws MintCoreError for a bcmrUri that exceeds 512 bytes", () => {
+    const longUri = "https://example.com/" + "x".repeat(500);
     expect(() => validateSchema({ ...base, bcmrUri: longUri })).toThrow(MintCoreError);
   });
 });
