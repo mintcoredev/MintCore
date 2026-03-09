@@ -23,14 +23,64 @@ interface ElectrumXUtxo {
 }
 
 export class ElectrumXProvider {
+  private readonly baseUrl: string;
+
   constructor(
-    private readonly baseUrl: string,
+    baseUrl: string,
     /**
      * Reserved for future use (e.g. network-specific URL routing or validation).
      * Kept for API consistency with `ChronikProvider`.
      */
     private readonly network: "mainnet" | "testnet" | "regtest"
-  ) {}
+  ) {
+    this.baseUrl = ElectrumXProvider.validateBaseUrl(baseUrl);
+  }
+
+  private static validateBaseUrl(url: string): string {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new MintCoreError("Invalid ElectrumX provider URL");
+    }
+
+    const isLocal =
+      parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+
+    if (parsed.protocol !== "https:" && !isLocal) {
+      throw new MintCoreError(
+        "ElectrumX provider URL must use HTTPS (or localhost for development)"
+      );
+    }
+
+    return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
+  }
+
+  private static parseUtxoEnvelope(data: unknown): ElectrumXUtxo[] {
+    if (!data || typeof data !== "object") {
+      throw new MintCoreError("ElectrumX returned an invalid response");
+    }
+
+    const anyData = data as { result?: unknown; error?: unknown };
+
+    if (typeof anyData.error === "string" && anyData.error.length > 0) {
+      throw new MintCoreError(`ElectrumX error: ${anyData.error}`);
+    }
+
+    // `anyData` and `data` alias the same reference; this allows the same
+    // expression to handle both a bare array and a `{ result: [...] }` wrapper.
+    const items = Array.isArray(anyData.result)
+      ? anyData.result
+      : Array.isArray(data)
+      ? (data as ElectrumXUtxo[])
+      : null;
+
+    if (!items) {
+      throw new MintCoreError("ElectrumX returned a malformed UTXO list");
+    }
+
+    return items;
+  }
 
   /**
    * Fetch UTXOs for a given address from an ElectrumX-compatible REST endpoint.
@@ -46,12 +96,8 @@ export class ElectrumXProvider {
         );
       }
 
-      const data = await res.json() as any;
-
-      // Support both a bare array and a `{ result: [...] }` wrapper.
-      const items: ElectrumXUtxo[] = Array.isArray(data)
-        ? data
-        : (data.result ?? []);
+      const data = await res.json();
+      const items = ElectrumXProvider.parseUtxoEnvelope(data);
 
       const mapped: Utxo[] = items.map((item) => ({
         txid: item.tx_hash,
@@ -91,7 +137,7 @@ export class ElectrumXProvider {
    */
   async broadcastTransaction(txHex: string): Promise<string> {
     try {
-      const url = `${this.baseUrl.replace(/\/+$/, "")}/tx/broadcast`;
+      const url = `${this.baseUrl}/tx/broadcast`;
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,6 +163,6 @@ export class ElectrumXProvider {
   }
 
   private buildUtxoUrl(address: string): string {
-    return `${this.baseUrl.replace(/\/+$/, "")}/address/${address}/unspent`;
+    return `${this.baseUrl}/address/${address}/unspent`;
   }
 }
