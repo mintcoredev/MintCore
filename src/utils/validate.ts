@@ -1,9 +1,33 @@
 import { TokenSchema, TokenCapability } from "../types/TokenSchema.js";
+import type { Utxo } from "../types/TransactionTypes.js";
 import { MintCoreError } from "./errors.js";
 
 const VALID_NFT_CAPABILITIES: TokenCapability[] = ["none", "mutable", "minting"];
 const MAX_NFT_COMMITMENT_BYTES = 40;
 const MAX_METADATA_SERIALIZED_BYTES = 1000;
+
+/**
+ * Type guard – returns `true` when `value` is a well-formed {@link Utxo}.
+ *
+ * Validates:
+ * - `txid` is a 64-character hex string (case-insensitive)
+ * - `vout` is a non-negative integer
+ * - `satoshis` is a finite non-negative number
+ */
+export function validateUtxo(value: unknown): value is Utxo {
+  if (!value || typeof value !== "object") return false;
+  const u = value as Record<string, unknown>;
+  return (
+    typeof u.txid === "string" &&
+    /^[0-9a-fA-F]{64}$/.test(u.txid) &&
+    typeof u.vout === "number" &&
+    Number.isInteger(u.vout) &&
+    u.vout >= 0 &&
+    typeof u.satoshis === "number" &&
+    Number.isFinite(u.satoshis) &&
+    u.satoshis >= 0
+  );
+}
 
 export function validateSchema(schema: TokenSchema): void {
   if (!schema.name) throw new MintCoreError("Token name is required");
@@ -56,9 +80,9 @@ export function validateSchema(schema: TokenSchema): void {
       throw new MintCoreError("bcmrUri must be a non-empty string");
     }
     const uriBytes = new TextEncoder().encode(schema.bcmrUri);
-    if (uriBytes.length > 220) {
+    if (uriBytes.length > 512) {
       throw new MintCoreError(
-        `bcmrUri is too long: ${uriBytes.length} bytes (max 220 bytes)`
+        `bcmrUri is too long: ${uriBytes.length} bytes (max 512 bytes)`
       );
     }
   }

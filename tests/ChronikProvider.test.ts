@@ -16,7 +16,7 @@ describe("ChronikProvider.fetchUtxos", () => {
 
   it("returns mapped UTXOs from a bare array response", async () => {
     const mockData = [
-      { txid: "aa".repeat(32), outpoint: { txid: "aa".repeat(32), outIdx: 0 }, value: "100000" },
+      { txid: "aa".repeat(32), vout: 0, satoshis: 100000, scriptPubKey: "" },
     ];
     (fetch as any).mockResolvedValueOnce({
       ok: true,
@@ -27,6 +27,7 @@ describe("ChronikProvider.fetchUtxos", () => {
     const utxos = await provider.fetchUtxos(TEST_ADDRESS);
 
     expect(utxos).toBeInstanceOf(Array);
+    expect(utxos).toHaveLength(1);
   });
 
   it("returns mapped UTXOs from a { utxos: [...] } wrapped response", async () => {

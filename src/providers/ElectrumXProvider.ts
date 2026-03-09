@@ -1,5 +1,6 @@
 import type { Utxo } from "../types/TransactionTypes.js";
 import { MintCoreError } from "../utils/errors.js";
+import { validateUtxo } from "../utils/validate.js";
 
 /**
  * ElectrumX / Fulcrum HTTP REST UTXO provider.
@@ -52,12 +53,21 @@ export class ElectrumXProvider {
         ? data
         : (data.result ?? []);
 
-      return items.map((item) => ({
+      const mapped: Utxo[] = items.map((item) => ({
         txid: item.tx_hash,
         vout: item.tx_pos,
         satoshis: item.value,
         scriptPubKey: "",
       }));
+
+      const invalid = mapped.filter((u) => !validateUtxo(u));
+      if (invalid.length > 0) {
+        throw new MintCoreError(
+          `ElectrumX returned ${invalid.length} UTXO(s) with an invalid schema`
+        );
+      }
+
+      return mapped;
     } catch (err: any) {
       if (err instanceof MintCoreError) {
         throw err;

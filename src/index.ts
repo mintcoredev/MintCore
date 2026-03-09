@@ -9,7 +9,7 @@ export * from "./types/TransactionTypes.js";
 
 export { MintCoreError } from "./utils/errors.js";
 export { mintFungibleToken, mintNFT, verifyMint, createMetadata, encodeMetadata } from "./utils/convenience.js";
-export { validateSchema } from "./utils/validate.js";
+export { validateSchema, validateUtxo } from "./utils/validate.js";
 export { TransactionBuilder } from "./core/TransactionBuilder.js";
 export { ChronikProvider } from "./providers/ChronikProvider.js";
 export { ElectrumXProvider } from "./providers/ElectrumXProvider.js";
