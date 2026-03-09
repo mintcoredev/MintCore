@@ -3,14 +3,17 @@ name: Delete merged branches
 on:
   pull_request:
     types: [closed]
+  schedule:
+    - cron: '0 3 * * *'  # Daily at 03:00 UTC - catches any branches missed by the PR trigger
   workflow_dispatch:
 
 permissions:
   contents: write
+  administration: write  # Required to remove legacy branch-protection rules before deletion
 
 jobs:
   delete-merged-branch:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Delete merged branch
@@ -19,8 +22,55 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
 
-            // On workflow_dispatch, clean up any stale merged branches
-            if (context.eventName === 'workflow_dispatch') {
+            // Branch patterns that may have legacy protection removed before deletion.
+            // Only short-lived feature/bot branches are included; long-lived branches
+            // (e.g. main, release/*, hotfix/*) are never touched.
+            const REMOVABLE_PROTECTION_PATTERNS = [/^copilot\//];
+
+            function isRemovableProtection(branchName) {
+              return REMOVABLE_PROTECTION_PATTERNS.some(re => re.test(branchName));
+            }
+
+            // Attempt to delete a branch, stripping legacy branch-protection first if needed.
+            // Note: branches guarded by repository rulesets also require the GitHub Actions
+            // app to be added as a bypass actor under Settings -> Rules -> Rulesets.
+            async function tryDeleteBranch(branchName) {
+              try {
+                await github.rest.git.deleteRef({ owner, repo, ref: `heads/${branchName}` });
+                core.info(`Deleted branch: ${branchName}`);
+              } catch (err) {
+                if (
+                  err.message.includes('Repository rule violations') ||
+                  err.message.includes('Cannot delete this branch') ||
+                  err.message.includes('Protected branch')
+                ) {
+                  if (isRemovableProtection(branchName)) {
+                    // Strip any legacy branch-protection rule on short-lived branches, then retry.
+                    try {
+                      await github.rest.repos.deleteBranchProtection({ owner, repo, branch: branchName });
+                      await github.rest.git.deleteRef({ owner, repo, ref: `heads/${branchName}` });
+                      core.info(`Deleted branch (after removing legacy protection): ${branchName}`);
+                    } catch (err2) {
+                      core.warning(
+                        `Could not delete ${branchName}: ${err2.message}. ` +
+                        'If a repository ruleset is blocking deletion, add the GitHub Actions ' +
+                        'app as a bypass actor under Settings -> Rules -> Rulesets.'
+                      );
+                    }
+                  } else {
+                    core.warning(
+                      `Skipping deletion of ${branchName}: branch is protected and does not ` +
+                      'match a short-lived branch pattern. Remove the protection manually if deletion is intended.'
+                    );
+                  }
+                } else {
+                  core.warning(`Could not delete branch ${branchName}: ${err.message}`);
+                }
+              }
+            }
+
+            // On workflow_dispatch or schedule, clean up any stale merged branches.
+            if (context.eventName === 'workflow_dispatch' || context.eventName === 'schedule') {
               const branches = await github.paginate(github.rest.repos.listBranches, { owner, repo });
               const prs = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'closed' });
               const mergedHeads = new Set(
@@ -29,27 +79,17 @@ jobs:
               const defaultBranch = context.payload.repository?.default_branch ?? 'main';
               for (const branch of branches) {
                 if (branch.name !== defaultBranch && mergedHeads.has(branch.name)) {
-                  try {
-                    await github.rest.git.deleteRef({ owner, repo, ref: `heads/${branch.name}` });
-                    core.info(`Deleted stale merged branch: ${branch.name}`);
-                  } catch (err) {
-                    core.warning(`Could not delete ${branch.name}: ${err.message}`);
-                  }
+                  await tryDeleteBranch(branch.name);
                 }
               }
               return;
             }
 
-            // On pull_request closed+merged, delete the head branch
+            // On pull_request closed+merged, delete the head branch.
             const branchName = context.payload.pull_request.head.ref;
             const defaultBranch = context.payload.repository?.default_branch ?? 'main';
             if (branchName === defaultBranch) {
               core.info('Head branch is the default branch – skipping deletion.');
               return;
             }
-            try {
-              await github.rest.git.deleteRef({ owner, repo, ref: `heads/${branchName}` });
-              core.info(`Deleted branch: ${branchName}`);
-            } catch (err) {
-              core.warning(`Could not delete branch ${branchName}: ${err.message}`);
-            }
+            await tryDeleteBranch(branchName);
