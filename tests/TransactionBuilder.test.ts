@@ -106,6 +106,7 @@ describe("TransactionBuilder", () => {
 
     expect(result1.hex).toBe(result2.hex);
     expect(result1.txid).toBe(result2.txid);
+    expect(result1.rawHex).toBe(result2.rawHex);
   });
 
   it("returns different transactions for different schemas", async () => {

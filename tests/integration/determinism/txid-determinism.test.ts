@@ -51,7 +51,9 @@ describe("Txid determinism – offline mode", () => {
     const tx3 = await builder.build(schema);
 
     expect(tx1.txid).toBe(tx2.txid);
+    expect(tx1.rawHex).toBe(tx2.rawHex);
     expect(tx2.txid).toBe(tx3.txid);
+    expect(tx2.rawHex).toBe(tx3.rawHex);
   });
 
   it("produces an identical hex on repeated builds", async () => {
@@ -114,6 +116,7 @@ describe("Txid determinism – funded mode", () => {
     const tx2 = await builder2.build(schema);
 
     expect(tx1.txid).toBe(tx2.txid);
+    expect(tx1.rawHex).toBe(tx2.rawHex);
     expect(tx1.hex).toBe(tx2.hex);
   });
 
@@ -135,6 +138,7 @@ describe("Txid determinism – funded mode", () => {
     const tx2 = await builder2.build(schema);
 
     expect(tx1.txid).toBe(tx2.txid);
+    expect(tx1.rawHex).toBe(tx2.rawHex);
   });
 
   it("produces a different txid when the UTXO set changes", async () => {

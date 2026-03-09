@@ -79,6 +79,7 @@ describe("Private-key signing – funded mode", () => {
 
     expect(tx1.hex).toBe(tx2.hex);
     expect(tx1.txid).toBe(tx2.txid);
+    expect(tx1.rawHex).toBe(tx2.rawHex);
   });
 
   it("produces different transactions for different private keys", async () => {
