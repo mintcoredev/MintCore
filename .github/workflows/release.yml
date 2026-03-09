@@ -15,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Ensure this is a tag
+        if: startsWith(github.ref, 'refs/tags/') != true
+        run: |
+          echo "Not a tag. Exiting."
+          exit 0
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
