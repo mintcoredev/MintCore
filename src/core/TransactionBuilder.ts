@@ -124,7 +124,8 @@ export class TransactionBuilder {
 
     const txBytes = encodeTransactionBCH(tx);
     const txid = hash256(txBytes).reverse();
-    return { hex: toHex(txBytes), txid: toHex(txid) };
+    const hex = toHex(txBytes);
+    return { hex, rawHex: hex, txid: toHex(txid) };
   }
 
   /**
@@ -178,7 +179,8 @@ export class TransactionBuilder {
 
     const txBytes = encodeTransactionBCH(tx);
     const txid = hash256(txBytes).reverse();
-    return { hex: toHex(txBytes), txid: toHex(txid), fee };
+    const hex = toHex(txBytes);
+    return { hex, rawHex: hex, txid: toHex(txid), fee };
   }
 
   /**
@@ -208,7 +210,7 @@ export class TransactionBuilder {
     // Derive the txid from the signed transaction bytes
     const signedBytes = fromHex(signedHex);
     const txid = toHex(hash256(signedBytes).reverse());
-    return { hex: signedHex, txid, fee };
+    return { hex: signedHex, rawHex: signedHex, txid, fee };
   }
 
   /**

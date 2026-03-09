@@ -18,6 +18,8 @@ export interface TokenOutput {
 
 export interface BuiltTransaction {
   hex: string;
+  /** Raw serialized transaction hex (identical to `hex`; present for explicit determinism assertions). */
+  rawHex: string;
   txid: string;
   /** Fee paid in satoshis. Only present when a UTXO provider was used. */
   fee?: number;
