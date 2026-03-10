@@ -21,6 +21,12 @@ export class SupplyEngine {
       this.minted.set(event.asset, (this.minted.get(event.asset) ?? 0n) + event.amount);
     } else if (event.type === "BURN") {
       this.burned.set(event.asset, (this.burned.get(event.asset) ?? 0n) + event.amount);
+    } else if (event.type === "ADJUSTMENT") {
+      if (event.to) {
+        this.minted.set(event.asset, (this.minted.get(event.asset) ?? 0n) + event.amount);
+      } else if (event.from) {
+        this.burned.set(event.asset, (this.burned.get(event.asset) ?? 0n) + event.amount);
+      }
     }
   }
 }

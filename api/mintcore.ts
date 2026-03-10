@@ -1,32 +1,20 @@
 /**
  * MintCore Unified API
  *
- * Public surface for v0.1.0. Import from this file instead of reaching
- * into individual modules.
+ * Public surface for v0.1.0. Import from "mintcore" to access all public
+ * exports — minting, metadata, accounting, and rules.
  *
  * @example
- * import { minting, metadata, accounting, rules } from "./api/mintcore.js";
+ * import { mintFungibleToken, AccountingAPI, createMaxSupplyRule } from "mintcore";
  */
 
-// ── minting ──────────────────────────────────────────────────────────────────
-export {
-  mintFungibleToken,
-  mintNFT,
-  verifyMint,
-} from "../src/utils/convenience.js";
-
-export { MintEngine } from "../src/core/MintEngine.js";
-export type { MintResult } from "../src/core/MintResult.js";
-
-// ── metadata ─────────────────────────────────────────────────────────────────
-export {
-  createMetadata,
-  encodeMetadata,
-} from "../src/utils/convenience.js";
+// ── minting + utilities (full src entry point) ───────────────────────────────
+export * from "../src/index.js";
 
 // ── accounting ───────────────────────────────────────────────────────────────
 export { AccountingAPI } from "../modules/accounting/api/accountingAPI.js";
 export type { Event, EventType } from "../modules/accounting/models/event.js";
+export type { Asset } from "../modules/accounting/models/asset.js";
 export type { Balance } from "../modules/accounting/models/balance.js";
 export { AccountingError, ValidationError } from "../modules/accounting/models/errors.js";
 
@@ -41,3 +29,7 @@ export {
   createXpThresholdRule,
   createQuestRewardRule,
 } from "../modules/accounting/rules/ruleDefinitions.js";
+
+// ── adjustment ────────────────────────────────────────────────────────────────
+export { AdjustmentService } from "../modules/accounting/services/adjustmentService.js";
+export type { AdjustmentParams, AdjustmentDirection } from "../modules/accounting/services/adjustmentService.js";

@@ -13,3 +13,5 @@ export {
   createXpThresholdRule,
   createQuestRewardRule,
 } from "./rules/ruleDefinitions.js";
+export { AdjustmentService } from "./services/adjustmentService.js";
+export type { AdjustmentParams, AdjustmentDirection } from "./services/adjustmentService.js";

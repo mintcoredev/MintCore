@@ -3,6 +3,12 @@ import { EventStore } from "../ledger/eventStore.js";
 import { Ledger } from "../ledger/ledger.js";
 import { serializeEvent, deserializeEvent, hashEvent } from "../ledger/serializers.js";
 import { EVENT_TYPES } from "../ledger/eventTypes.js";
+import { BalanceEngine } from "../balances/balanceEngine.js";
+import { SupplyEngine } from "../balances/supplyEngine.js";
+import { RuleEngine } from "../rules/ruleEngine.js";
+import { MintService } from "../services/mintService.js";
+import { TransferService } from "../services/transferService.js";
+import { BurnService } from "../services/burnService.js";
 import type { Event } from "../models/event.js";
 
 const makeEvent = (overrides: Partial<Event> = {}): Event => ({
@@ -155,5 +161,61 @@ describe("EVENT_TYPES", () => {
     expect(EVENT_TYPES.REWARD).toBe("REWARD");
     expect(EVENT_TYPES.FEE).toBe("FEE");
     expect(EVENT_TYPES.ADJUSTMENT).toBe("ADJUSTMENT");
+  });
+});
+
+describe("Ledger replay — identical state", () => {
+  it("replaying ledger events produces identical balances to live state", () => {
+    const ledger = new Ledger();
+    const balanceEngine = new BalanceEngine();
+    const supplyEngine = new SupplyEngine();
+    const ruleEngine = new RuleEngine();
+
+    const mintSvc = new MintService(ledger, balanceEngine, supplyEngine, ruleEngine);
+    const transferSvc = new TransferService(ledger, balanceEngine, ruleEngine);
+    const burnSvc = new BurnService(ledger, balanceEngine, supplyEngine, ruleEngine);
+
+    mintSvc.mint({ asset: "GOLD", to: "alice", amount: 1000n });
+    transferSvc.transfer({ asset: "GOLD", from: "alice", to: "bob", amount: 300n });
+    burnSvc.burn({ asset: "GOLD", from: "alice", amount: 100n });
+    mintSvc.mint({ asset: "GOLD", to: "carol", amount: 500n });
+    transferSvc.transfer({ asset: "GOLD", from: "carol", to: "bob", amount: 200n });
+
+    const liveAlice = balanceEngine.getBalance("alice", "GOLD");
+    const liveBob = balanceEngine.getBalance("bob", "GOLD");
+    const liveCarol = balanceEngine.getBalance("carol", "GOLD");
+    const liveSupply = supplyEngine.getSupply("GOLD");
+
+    const replayedEvents = ledger.replay();
+    const freshBalance = new BalanceEngine();
+    const freshSupply = new SupplyEngine();
+    for (const event of replayedEvents) {
+      freshBalance.applyEvent(event);
+      freshSupply.applyEvent(event);
+    }
+
+    expect(freshBalance.getBalance("alice", "GOLD")).toBe(liveAlice);
+    expect(freshBalance.getBalance("bob", "GOLD")).toBe(liveBob);
+    expect(freshBalance.getBalance("carol", "GOLD")).toBe(liveCarol);
+    expect(freshSupply.getSupply("GOLD")).toBe(liveSupply);
+  });
+
+  it("replayed event hashes are identical to original event hashes", () => {
+    const ledger = new Ledger();
+    const balanceEngine = new BalanceEngine();
+    const supplyEngine = new SupplyEngine();
+    const ruleEngine = new RuleEngine();
+    const mintSvc = new MintService(ledger, balanceEngine, supplyEngine, ruleEngine);
+
+    mintSvc.mint({ asset: "GOLD", to: "alice", amount: 100n });
+    mintSvc.mint({ asset: "GOLD", to: "bob", amount: 50n });
+
+    const originalEvents = ledger.getEvents();
+    const replayedEvents = ledger.replay();
+
+    expect(replayedEvents).toHaveLength(originalEvents.length);
+    for (let i = 0; i < originalEvents.length; i++) {
+      expect(replayedEvents[i]).toEqual(originalEvents[i]);
+    }
   });
 });

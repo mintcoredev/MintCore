@@ -9,6 +9,7 @@ import { TransferService } from "../services/transferService.js";
 import { BurnService } from "../services/burnService.js";
 import { RewardService } from "../services/rewardService.js";
 import { FeeService } from "../services/feeService.js";
+import { AdjustmentService } from "../services/adjustmentService.js";
 import type { Event } from "../models/event.js";
 import type { Balance } from "../models/balance.js";
 import type { Rule } from "../models/rule.js";
@@ -25,6 +26,7 @@ export class AccountingAPI {
   private readonly burnService: BurnService;
   private readonly rewardService: RewardService;
   private readonly feeService: FeeService;
+  private readonly adjustmentService: AdjustmentService;
 
   constructor() {
     this.ledger = new Ledger();
@@ -57,6 +59,11 @@ export class AccountingAPI {
       this.ruleEngine,
     );
     this.feeService = new FeeService(this.ledger, this.balanceEngine);
+    this.adjustmentService = new AdjustmentService(
+      this.ledger,
+      this.balanceEngine,
+      this.supplyEngine,
+    );
   }
 
   mint(
@@ -104,6 +111,25 @@ export class AccountingAPI {
       collector,
     });
     if (collector) this.ownershipEngine.applyEvent(event);
+    this.historyEngine.applyEvent(event);
+    return event;
+  }
+
+  adjust(
+    asset: string,
+    address: string,
+    amount: bigint,
+    direction: "credit" | "debit",
+    metadata?: Record<string, unknown>,
+  ): Event {
+    const event = this.adjustmentService.adjust({
+      asset,
+      address,
+      amount,
+      direction,
+      metadata,
+    });
+    if (direction === "credit") this.ownershipEngine.applyEvent(event);
     this.historyEngine.applyEvent(event);
     return event;
   }
