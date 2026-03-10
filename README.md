@@ -17,6 +17,47 @@ A minimal [CashTokens](https://cashtokens.org/) minting library for Bitcoin Cash
 npm install mintcore
 ```
 
+## v0.1.0 Developer Guide
+
+### Import
+
+```typescript
+import {
+  mintFungibleToken,
+  createMetadata,
+  AccountingAPI,
+  createMaxSupplyRule,
+} from "mintcore/api/mintcore.js";
+```
+
+### Mint
+
+```typescript
+const result = await mintFungibleToken(
+  { network: "mainnet", privateKey: "<32-byte hex key>" },
+  { name: "My Token", symbol: "MTK", decimals: 2, initialSupply: 1_000_000n }
+);
+console.log(result.txid);
+```
+
+### Transfer
+
+```typescript
+const api = new AccountingAPI();
+api.mint("GOLD", "alice", 100n);
+api.transfer("GOLD", "alice", "bob", 40n);
+```
+
+### Get Balance
+
+```typescript
+const api = new AccountingAPI();
+api.mint("GOLD", "alice", 100n);
+const balance = api.getBalance("alice", "GOLD"); // 100n
+```
+
+---
+
 ## Quick Start
 
 ```typescript
