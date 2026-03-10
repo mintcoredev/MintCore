@@ -27,7 +27,7 @@ import {
   createMetadata,
   AccountingAPI,
   createMaxSupplyRule,
-} from "mintcore/api/mintcore.js";
+} from "mintcore";
 ```
 
 ### Mint

@@ -218,3 +218,99 @@ describe("AccountingAPI — full workflow", () => {
     expect(history[1]!.type).toBe("TRANSFER");
   });
 });
+
+describe("AccountingAPI — adjust", () => {
+  let api: AccountingAPI;
+
+  beforeEach(() => {
+    api = new AccountingAPI();
+    api.mint("GOLD", "alice", 100n);
+  });
+
+  it("returns an ADJUSTMENT event for credit direction", () => {
+    const event = api.adjust("GOLD", "bob", 50n, "credit");
+    expect(event.type).toBe("ADJUSTMENT");
+    expect(event.to).toBe("bob");
+    expect(event.from).toBeUndefined();
+    expect(event.amount).toBe(50n);
+  });
+
+  it("returns an ADJUSTMENT event for debit direction", () => {
+    const event = api.adjust("GOLD", "alice", 30n, "debit");
+    expect(event.type).toBe("ADJUSTMENT");
+    expect(event.from).toBe("alice");
+    expect(event.to).toBeUndefined();
+    expect(event.amount).toBe(30n);
+  });
+
+  it("credit adjustment increases balance", () => {
+    api.adjust("GOLD", "bob", 50n, "credit");
+    expect(api.getBalance("bob", "GOLD")).toBe(50n);
+  });
+
+  it("debit adjustment decreases balance", () => {
+    api.adjust("GOLD", "alice", 30n, "debit");
+    expect(api.getBalance("alice", "GOLD")).toBe(70n);
+  });
+
+  it("credit adjustment increases supply", () => {
+    api.adjust("GOLD", "bob", 50n, "credit");
+    expect(api.getSupply("GOLD")).toBe(150n);
+  });
+
+  it("debit adjustment decreases supply", () => {
+    api.adjust("GOLD", "alice", 30n, "debit");
+    expect(api.getSupply("GOLD")).toBe(70n);
+  });
+
+  it("credit adjustment registers holder", () => {
+    api.adjust("GOLD", "charlie", 10n, "credit");
+    expect(api.getHolders("GOLD")).toContain("charlie");
+  });
+
+  it("records adjustment in history", () => {
+    api.adjust("GOLD", "alice", 10n, "debit");
+    const history = api.getHistory("alice");
+    expect(history.some((e) => e.type === "ADJUSTMENT")).toBe(true);
+  });
+
+  it("throws when debit adjustment exceeds balance", () => {
+    expect(() => api.adjust("GOLD", "alice", 200n, "debit")).toThrow(
+      ValidationError,
+    );
+  });
+
+  it("passes metadata to the adjustment event", () => {
+    const event = api.adjust("GOLD", "alice", 10n, "debit", { reason: "correction" });
+    expect(event.metadata?.["reason"]).toBe("correction");
+  });
+});
+
+describe("AccountingAPI — metadata integration", () => {
+  it("metadata on mint event is stored and retrievable via history", () => {
+    const api = new AccountingAPI();
+    api.mint("GOLD", "alice", 100n, { source: "genesis-block", batch: 1 });
+    const history = api.getHistory("alice");
+    expect(history[0]!.metadata?.["source"]).toBe("genesis-block");
+    expect(history[0]!.metadata?.["batch"]).toBe(1);
+  });
+
+  it("metadata on transfer event is stored in both sender and recipient history", () => {
+    const api = new AccountingAPI();
+    api.mint("GOLD", "alice", 100n);
+    api.transfer("GOLD", "alice", "bob", 40n);
+    const aliceHistory = api.getHistory("alice");
+    const bobHistory = api.getHistory("bob");
+    const aliceTransfer = aliceHistory.find((e) => e.type === "TRANSFER");
+    const bobTransfer = bobHistory.find((e) => e.type === "TRANSFER");
+    expect(aliceTransfer).toBeDefined();
+    expect(bobTransfer).toBeDefined();
+    expect(aliceTransfer!.id).toBe(bobTransfer!.id);
+  });
+
+  it("metadata on reward event contains ruleId", () => {
+    const api = new AccountingAPI();
+    const event = api.reward("quest-42", "alice", "GOLD", 50n);
+    expect(event.metadata?.["ruleId"]).toBe("quest-42");
+  });
+});

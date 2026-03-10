@@ -21,7 +21,8 @@ export class BalanceEngine {
       event.from &&
       (event.type === "TRANSFER" ||
         event.type === "BURN" ||
-        event.type === "FEE")
+        event.type === "FEE" ||
+        event.type === "ADJUSTMENT")
     ) {
       const fromKey = this.key(event.from, event.asset);
       this.balances.set(fromKey, (this.balances.get(fromKey) ?? 0n) - event.amount);

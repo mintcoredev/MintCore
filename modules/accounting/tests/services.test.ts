@@ -8,6 +8,7 @@ import { TransferService } from "../services/transferService.js";
 import { BurnService } from "../services/burnService.js";
 import { RewardService } from "../services/rewardService.js";
 import { FeeService } from "../services/feeService.js";
+import { AdjustmentService } from "../services/adjustmentService.js";
 import { ValidationError } from "../models/errors.js";
 import {
   createMaxSupplyRule,
@@ -288,6 +289,87 @@ describe("FeeService", () => {
     const svc = new FeeService(ctx.ledger, ctx.balanceEngine);
     expect(() =>
       svc.collectFee({ asset: "GOLD", from: "alice", amount: 1n }),
+    ).toThrow(ValidationError);
+  });
+});
+
+describe("AdjustmentService", () => {
+  it("creates a credit ADJUSTMENT event", () => {
+    const ctx = makeContext();
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    const event = svc.adjust({ asset: "GOLD", address: "alice", amount: 50n, direction: "credit" });
+    expect(event.type).toBe("ADJUSTMENT");
+    expect(event.to).toBe("alice");
+    expect(event.from).toBeUndefined();
+    expect(event.amount).toBe(50n);
+  });
+
+  it("creates a debit ADJUSTMENT event", () => {
+    const ctx = makeContext();
+    new MintService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine, ctx.ruleEngine).mint(
+      { asset: "GOLD", to: "alice", amount: 100n },
+    );
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    const event = svc.adjust({ asset: "GOLD", address: "alice", amount: 30n, direction: "debit" });
+    expect(event.type).toBe("ADJUSTMENT");
+    expect(event.from).toBe("alice");
+    expect(event.to).toBeUndefined();
+    expect(event.amount).toBe(30n);
+  });
+
+  it("credit adjustment increases balance", () => {
+    const ctx = makeContext();
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    svc.adjust({ asset: "GOLD", address: "alice", amount: 50n, direction: "credit" });
+    expect(ctx.balanceEngine.getBalance("alice", "GOLD")).toBe(50n);
+  });
+
+  it("debit adjustment decreases balance", () => {
+    const ctx = makeContext();
+    new MintService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine, ctx.ruleEngine).mint(
+      { asset: "GOLD", to: "alice", amount: 100n },
+    );
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    svc.adjust({ asset: "GOLD", address: "alice", amount: 30n, direction: "debit" });
+    expect(ctx.balanceEngine.getBalance("alice", "GOLD")).toBe(70n);
+  });
+
+  it("credit adjustment increases supply", () => {
+    const ctx = makeContext();
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    svc.adjust({ asset: "GOLD", address: "alice", amount: 50n, direction: "credit" });
+    expect(ctx.supplyEngine.getSupply("GOLD")).toBe(50n);
+  });
+
+  it("debit adjustment decreases supply", () => {
+    const ctx = makeContext();
+    new MintService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine, ctx.ruleEngine).mint(
+      { asset: "GOLD", to: "alice", amount: 100n },
+    );
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    svc.adjust({ asset: "GOLD", address: "alice", amount: 30n, direction: "debit" });
+    expect(ctx.supplyEngine.getSupply("GOLD")).toBe(70n);
+  });
+
+  it("appends event to ledger", () => {
+    const ctx = makeContext();
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    svc.adjust({ asset: "GOLD", address: "alice", amount: 50n, direction: "credit" });
+    expect(ctx.ledger.getEvents()).toHaveLength(1);
+  });
+
+  it("stores direction in metadata", () => {
+    const ctx = makeContext();
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    const event = svc.adjust({ asset: "GOLD", address: "alice", amount: 50n, direction: "credit" });
+    expect(event.metadata?.["direction"]).toBe("credit");
+  });
+
+  it("throws ValidationError when debit exceeds balance", () => {
+    const ctx = makeContext();
+    const svc = new AdjustmentService(ctx.ledger, ctx.balanceEngine, ctx.supplyEngine);
+    expect(() =>
+      svc.adjust({ asset: "GOLD", address: "alice", amount: 1n, direction: "debit" }),
     ).toThrow(ValidationError);
   });
 });

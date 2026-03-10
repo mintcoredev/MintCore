@@ -76,6 +76,76 @@ describe("BalanceEngine", () => {
   });
 });
 
+describe("BalanceEngine — edge cases", () => {
+  let engine: BalanceEngine;
+
+  beforeEach(() => {
+    engine = new BalanceEngine();
+  });
+
+  it("returns 0n for an unknown address", () => {
+    expect(engine.getBalance("nobody", "GOLD")).toBe(0n);
+  });
+
+  it("returns 0n for an unknown asset", () => {
+    engine.applyEvent(makeEvent({ to: "alice", asset: "GOLD", amount: 100n }));
+    expect(engine.getBalance("alice", "SILVER")).toBe(0n);
+  });
+
+  it("handles very large amounts (bigint safety)", () => {
+    const large = BigInt("999999999999999999999999999999");
+    engine.applyEvent(makeEvent({ to: "alice", amount: large }));
+    expect(engine.getBalance("alice", "GOLD")).toBe(large);
+  });
+
+  it("handles zero-amount MINT event without error", () => {
+    engine.applyEvent(makeEvent({ to: "alice", amount: 0n }));
+    expect(engine.getBalance("alice", "GOLD")).toBe(0n);
+  });
+
+  it("applies credit ADJUSTMENT event", () => {
+    engine.applyEvent(makeEvent({ id: "adj-1", type: "ADJUSTMENT", to: "alice", from: undefined, amount: 50n }));
+    expect(engine.getBalance("alice", "GOLD")).toBe(50n);
+  });
+
+  it("applies debit ADJUSTMENT event", () => {
+    engine.applyEvent(makeEvent({ type: "MINT", to: "alice", amount: 100n }));
+    engine.applyEvent(makeEvent({ id: "adj-1", type: "ADJUSTMENT", from: "alice", to: undefined, amount: 30n }));
+    expect(engine.getBalance("alice", "GOLD")).toBe(70n);
+  });
+});
+
+describe("SupplyEngine — edge cases", () => {
+  let engine: SupplyEngine;
+
+  beforeEach(() => {
+    engine = new SupplyEngine();
+  });
+
+  it("returns 0n for unknown asset supply", () => {
+    expect(engine.getSupply("UNKNOWN")).toBe(0n);
+  });
+
+  it("credit ADJUSTMENT increases supply", () => {
+    engine.applyEvent(makeEvent({ type: "ADJUSTMENT", to: "alice", from: undefined, amount: 50n }));
+    expect(engine.getSupply("GOLD")).toBe(50n);
+    expect(engine.getMinted("GOLD")).toBe(50n);
+  });
+
+  it("debit ADJUSTMENT decreases supply", () => {
+    engine.applyEvent(makeEvent({ type: "MINT", amount: 100n }));
+    engine.applyEvent(makeEvent({ id: "2", type: "ADJUSTMENT", from: "alice", to: undefined, amount: 30n }));
+    expect(engine.getSupply("GOLD")).toBe(70n);
+    expect(engine.getBurned("GOLD")).toBe(30n);
+  });
+
+  it("ADJUSTMENT with neither to nor from does not change supply", () => {
+    engine.applyEvent(makeEvent({ type: "MINT", amount: 100n }));
+    engine.applyEvent(makeEvent({ id: "2", type: "ADJUSTMENT", from: undefined, to: undefined, amount: 10n }));
+    expect(engine.getSupply("GOLD")).toBe(100n);
+  });
+});
+
 describe("SupplyEngine", () => {
   let engine: SupplyEngine;
 
