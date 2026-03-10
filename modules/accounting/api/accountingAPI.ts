@@ -130,6 +130,9 @@ export class AccountingAPI {
       metadata,
     });
     if (direction === "credit") this.ownershipEngine.applyEvent(event);
+    // Debit adjustments do not remove holders from the ownership set.
+    // OwnershipEngine is intentionally append-only for v0.1.0; ownership
+    // cleanup (e.g. removing zero-balance holders) is deferred to v0.2.0.
     this.historyEngine.applyEvent(event);
     return event;
   }

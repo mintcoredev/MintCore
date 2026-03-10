@@ -22,6 +22,9 @@ export class SupplyEngine {
     } else if (event.type === "BURN") {
       this.burned.set(event.asset, (this.burned.get(event.asset) ?? 0n) + event.amount);
     } else if (event.type === "ADJUSTMENT") {
+      // Credit adjustment (to is set): increases supply via minted counter.
+      // Debit adjustment (from is set): decreases supply via burned counter.
+      // If neither to nor from is set, supply is unchanged (intentional no-op).
       if (event.to) {
         this.minted.set(event.asset, (this.minted.get(event.asset) ?? 0n) + event.amount);
       } else if (event.from) {
