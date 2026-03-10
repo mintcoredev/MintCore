@@ -132,7 +132,7 @@ describe("serializers", () => {
 
   it("hashEvent returns a hex string", () => {
     const hash = hashEvent(makeEvent());
-    expect(hash).toMatch(/^[0-9a-f]+$/);
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("hashEvent is deterministic for the same event", () => {

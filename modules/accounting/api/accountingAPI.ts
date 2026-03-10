@@ -103,6 +103,7 @@ export class AccountingAPI {
       amount,
       collector,
     });
+    if (collector) this.ownershipEngine.applyEvent(event);
     this.historyEngine.applyEvent(event);
     return event;
   }

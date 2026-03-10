@@ -5,7 +5,7 @@ export class BalanceEngine {
   private balances = new Map<string, bigint>();
 
   private key(address: string, asset: string): string {
-    return `${address}:${asset}`;
+    return `${address}\x00${asset}`;
   }
 
   getBalance(address: string, asset: string): bigint {
@@ -31,9 +31,9 @@ export class BalanceEngine {
   getAllBalances(): Balance[] {
     const result: Balance[] = [];
     for (const [key, amount] of this.balances) {
-      const colonIndex = key.indexOf(":");
-      const address = key.slice(0, colonIndex);
-      const asset = key.slice(colonIndex + 1);
+      const separatorIndex = key.indexOf("\x00");
+      const address = key.slice(0, separatorIndex);
+      const asset = key.slice(separatorIndex + 1);
       result.push({ address, asset, amount });
     }
     return result;

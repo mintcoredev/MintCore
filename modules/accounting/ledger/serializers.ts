@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Event } from "../models/event.js";
 
 export function serializeEvent(event: Event): string {
@@ -11,11 +12,5 @@ export function deserializeEvent(json: string): Event {
 
 export function hashEvent(event: Event): string {
   const serialized = serializeEvent(event);
-  let hash = 0;
-  for (let i = 0; i < serialized.length; i++) {
-    const char = serialized.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(8, "0");
+  return createHash("sha256").update(serialized).digest("hex");
 }
