@@ -1,0 +1,4 @@
+# Connect the GitHub "Sponsor" button to the CashMint donate button.
+# Replace the placeholder below with your BCH receiving address.
+# Format: bitcoincash:<your-address>
+custom: ["bitcoincash:YOUR_BCH_ADDRESS_HERE"]
