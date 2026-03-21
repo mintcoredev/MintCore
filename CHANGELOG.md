@@ -30,7 +30,7 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.2.0] — WalletConnect v2 Engine
+## [1.2.0] - 2026-03-21 — WalletConnect v2 Engine
 
 ### Added
 
@@ -55,7 +55,7 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.1.0] — Batch Minting Engine
+## [1.1.0] - 2026-03-14 — Batch Minting Engine
 
 ### Added
 
@@ -83,7 +83,7 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.0.0] - 2026-03-01
+## [1.0.0 Beta] - 2026-03-01
 
 ### Added
 
