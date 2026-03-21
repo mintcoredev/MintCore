@@ -44,8 +44,34 @@ transactions to the network. Two built-in providers are included:
 - **ChronikProvider** — connects to a [Chronik](https://chronik.be.cash/) indexer
 - **ElectrumXProvider** — connects to an ElectrumX / Fulcrum server
 
+## Wallet Engine (New in v1.2.0)
+
+MintCore now includes a WalletConnect v2 engine for Bitcoin Cash wallet integration.
+
+- **UI-agnostic** — the engine contains no modal, dialog, or visual component of any
+  kind. Consumers supply their own pairing UI if one is required.
+- **Stable TypeScript API** — `WalletManager` exposes a typed interface for connecting,
+  disconnecting, signing transactions, and signing messages. Types are exported from the
+  top-level package entry point.
+- **No modal logic** — session establishment is handled entirely by the consumer's
+  application layer. MintCore manages only the post-approval lifecycle.
+
+```
+src/wallet/
+├── WalletTypes.ts     Enumerations, constants, and interfaces
+├── WalletClient.ts    Low-level WalletConnect v2 adapter
+├── WalletManager.ts   High-level lifecycle orchestrator
+└── index.ts           Public re-export barrel
+```
+
+See [Wallet Engine Architecture](wallet/architecture.md) and the
+[Wallet API Reference](api/wallet.md) for full details.
+
 ## Further Reading
 
+- [Wallet Engine Architecture](wallet/architecture.md) — component responsibilities and engine-only constraints
+- [Wallet API Reference](api/wallet.md) — public API and type definitions
+- [Wallet Engine Versioning](versioning/wallet-engine.md) — migration notes for v1.2.0
 - [Future Modules](future-modules.md) — planned extensions and upcoming features
 - [Versioning Policy](VERSIONING.md) — how releases are versioned
 - [Commit Conventions](COMMITS.md) — commit message standard

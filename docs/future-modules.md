@@ -4,11 +4,6 @@ This document tracks planned extensions and upcoming features for MintCore.
 
 ## Planned
 
-### Multi-Mint Batching
-
-Support for building a single transaction that mints multiple token categories in one
-operation, reducing on-chain footprint for bulk issuances.
-
 ### BCMR Publishing Module
 
 A dedicated module for constructing and broadcasting
@@ -42,5 +37,12 @@ limits, and supply cap checks.
 - **Regtest utilities** — helpers for spinning up local regtest environments for testing
 
 ## Completed
+
+- **Batch Minting** — `BatchMintEngine` shipped in v1.1.0. Plans and executes large
+  batches of token mint operations across multiple transactions, with greedy UTXO
+  selection, fee estimation, and UTXO locking. See [docs/batch-minting.md](batch-minting.md).
+- **WalletConnect v2 Engine** — `WalletManager` shipped in v1.2.0. Connects BCH wallets
+  (Paytaca, Cashonize, Zapit) via WalletConnect v2 without requiring a private key.
+  See [docs/wallet/architecture.md](wallet/architecture.md).
 
 See [CHANGELOG](../CHANGELOG.md) for a full history of shipped features.
