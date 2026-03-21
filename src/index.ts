@@ -23,3 +23,22 @@ export type { CoinSelectResult } from "./utils/coinselect.js";
 export { UtxoLock } from "./utils/utxoLock.js";
 export { VERSION } from "./version.js";
 export { generateKey, deriveAddress } from "./utils/keys.js";
+
+// ── wallet engine ─────────────────────────────────────────────────────────────
+export {
+  WalletClient,
+  WalletManager,
+  WalletType,
+  WalletConnectionState,
+  BCH_CHAIN_IDS,
+} from "./wallet/index.js";
+export type {
+  WalletClientOptions,
+  WalletConnectV2Client,
+  WalletConnectSession,
+  WalletManagerOptions,
+  BchNetwork,
+  WalletSession,
+  WalletEventName,
+  WalletEventPayload,
+} from "./wallet/index.js";
