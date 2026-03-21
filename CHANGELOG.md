@@ -55,6 +55,34 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
+## [1.1.0] — Batch Minting Engine
+
+### Added
+
+- **`BatchMintEngine`** — new high-level engine for planning and executing large-scale
+  CashTokens mint operations across multiple optimised transactions.
+- **`planMintBatch(requests, options?)`** — deterministic, pure planning phase; groups
+  mint requests into fee-bounded transaction chunks, selects UTXOs with a greedy
+  largest-first algorithm, and returns a cost summary before any transaction is signed.
+  Works in offline mode (no UTXO provider) for fee previews.
+- **`executeMintBatch(plan, options?)`** — signs and broadcasts all planned transactions
+  in order; maps every mint request back to its resulting `txid` and output index.
+- **`BatchMintOptions`** — configurable planning parameters: `maxOutputsPerTx`,
+  `maxFeePerTx`, `feeRate`, `feeSafetyMarginPercent`, `continueOnFailure`.
+- **`BatchMintPlan` / `PlannedTransaction` / `MintExecutionResult`** — typed result
+  structures for the planning and execution phases.
+- **`MintRequest`** — typed input describing a single token output to mint, including
+  `capability`, `amount`, optional `category`, `commitment`, and `recipientAddress`.
+- **`UtxoLock`** — internal UTXO locking registry that prevents double-selection of
+  inputs across chunks within the same batch; locks are released unconditionally on
+  completion or failure.
+- **Fee utilities** — `estimateBatchTxFee` and `estimateBatchTxSize` for accurate
+  pre-signing cost estimation with a configurable safety margin.
+- **`BatchMintTypes`** — all shared TypeScript types for the batch minting subsystem,
+  exported from the top-level package entry point.
+
+---
+
 ## [0.1.0] - 2025-01-01
 
 ### Added
@@ -66,5 +94,6 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 - Vitest-based test suite.
 
 [Unreleased]: https://github.com/mintcoredev/MintCore/compare/v1.2.0...HEAD
-[1.2.0]: https://github.com/mintcoredev/MintCore/compare/v0.1.0...v1.2.0
+[1.2.0]: https://github.com/mintcoredev/MintCore/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/mintcoredev/MintCore/compare/v0.1.0...v1.1.0
 [0.1.0]: https://github.com/mintcoredev/MintCore/releases/tag/v0.1.0
