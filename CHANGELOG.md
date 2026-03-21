@@ -30,6 +30,31 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
+## [1.2.0] — WalletConnect v2 Engine
+
+### Added
+
+- **WalletConnect v2 support for Bitcoin Cash** — new wallet engine under `src/wallet/`
+  that connects to BCH wallets via the WalletConnect v2 protocol.
+- **`WalletClient`** — low-level adapter wrapping a duck-typed `WalletConnectV2Client`;
+  resolves addresses via `bch_getAccounts` and signs via `bch_signTransaction` /
+  `personal_sign`.
+- **`WalletManager`** — high-level lifecycle orchestrator; manages connection state,
+  delegates signing to `WalletClient`, and emits typed events.
+- **`WalletTypes`** — shared enumerations (`WalletType`, `WalletConnectionState`),
+  constants (`BCH_CHAIN_IDS`), and interfaces (`WalletSession`, `WalletEventPayload`).
+- **Public wallet API** — `connect`, `disconnect`, `getAddress`, `getWalletType`,
+  `signTransaction`, `signMessage` exposed via `WalletManager`.
+- **Event system** — `connected`, `disconnected`, `stateChange`, and `error` events
+  for reactive wallet state management.
+- **BCH namespace support** — `bch:bitcoincash`, `bch:bchtest`, and `bch:bchreg`.
+- **Supported wallets** — Paytaca, Cashonize, and Zapit enumerated in `WalletType`.
+- **No UI included** — engine only; no modal, dialog, React component, or DOM access.
+- **Updated internal architecture** — wallet subsystem is modular and independently
+  importable without affecting the existing minting engine.
+
+---
+
 ## [0.1.0] - 2025-01-01
 
 ### Added
@@ -40,5 +65,6 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 - TypeScript type definitions for all public exports.
 - Vitest-based test suite.
 
-[Unreleased]: https://github.com/mintcoredev/MintCore/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mintcoredev/MintCore/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/mintcoredev/MintCore/compare/v0.1.0...v1.2.0
 [0.1.0]: https://github.com/mintcoredev/MintCore/releases/tag/v0.1.0
