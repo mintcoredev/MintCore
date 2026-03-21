@@ -42,6 +42,9 @@ Use the module or area of the codebase affected. Common scopes in MintCore:
 | Scope | Area |
 |-------|------|
 | `engine` | Core minting engine (`src/core/`) |
+| `batch` | Batch minting engine (`src/core/BatchMintEngine.ts`) |
+| `wallet` | Wallet engine (`src/wallet/`) |
+| `accounting` | Accounting module (`modules/accounting/`) |
 | `hex` | Hex encoding/decoding utilities (`src/utils/`) |
 | `keys` | Key management and wallet utilities (`src/utils/keys.ts`) |
 | `ft` | Fungible token logic |

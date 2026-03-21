@@ -20,6 +20,9 @@
 <!-- Check all scopes affected by this PR. -->
 
 - [ ] `engine`
+- [ ] `batch`
+- [ ] `wallet`
+- [ ] `accounting`
 - [ ] `chronik`
 - [ ] `hex`
 - [ ] `keys`

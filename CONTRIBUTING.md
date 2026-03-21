@@ -45,7 +45,7 @@ npm test
 npx vitest
 ```
 
-All tests live in the `tests/` directory. Please keep test files co-located with the feature
+All tests live in the `tests/` directory (core engine) and `modules/accounting/tests/` (accounting module). Please keep test files co-located with the feature
 they cover and name them `*.test.ts`.
 
 ---
@@ -106,20 +106,20 @@ full process, including the required **Migration Guide** in the PR description.
 
 ## Running CLI Examples
 
-The `campaigns/` directory contains example scripts and campaign definitions.
+The `examples/` directory contains runnable example scripts.
 
 ```bash
 # Build first so imports resolve
 npm run build
 
 # Run a specific example (adjust path as needed)
-node dist/index.js
+node dist/examples/mint-ft.js
 ```
 
 TypeScript examples can be run directly with `ts-node`:
 
 ```bash
-npx ts-node --esm src/index.ts
+npx ts-node --esm examples/mint-ft.ts
 ```
 
 ---
