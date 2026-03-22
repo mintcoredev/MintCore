@@ -10,4 +10,4 @@
  * import type { WalletAdapter } from "../wallet/WalletAdapter.js";
  * ```
  */
-export type { WalletAdapter } from "../../src/wallet/adapters/WalletAdapter.js";
+export type { WalletAdapter } from "../../wallet/adapters/WalletAdapter.js";

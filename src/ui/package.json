@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "description": "React UI layer for MintCore — wallet provider, hooks, and components",
   "type": "module",
-  "main": "../dist/ui/index.js",
-  "types": "../dist/ui/index.d.ts",
+  "main": "../../dist/ui/index.js",
+  "types": "../../dist/ui/index.d.ts",
   "exports": {
     ".": {
-      "import": "../dist/ui/index.js",
-      "types": "../dist/ui/index.d.ts"
+      "import": "../../dist/ui/index.js",
+      "types": "../../dist/ui/index.d.ts"
     }
   },
   "scripts": {

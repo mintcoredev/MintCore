@@ -12,8 +12,8 @@
  */
 export {
   WizardAdapter,
-} from "../../../src/wallet/adapters/WizardAdapter.js";
+} from "../../../wallet/adapters/WizardAdapter.js";
 export type {
   WizardAdapterClientLike,
   BchSourceOutput,
-} from "../../../src/wallet/adapters/WizardAdapter.js";
+} from "../../../wallet/adapters/WizardAdapter.js";
