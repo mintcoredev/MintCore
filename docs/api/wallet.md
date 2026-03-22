@@ -1,6 +1,6 @@
 # Wallet API Reference
 
-Public API introduced in MintCore v1.2.0 via the `WalletManager` and `WalletClient`
+Public API introduced in MintCore v1.3.0 via the `WalletManager` and `WalletClient`
 classes. All exports are available from the top-level `mintcore` package entry point.
 
 ## WalletManager Methods
@@ -9,20 +9,18 @@ classes. All exports are available from the top-level `mintcore` package entry p
 
 ```typescript
 connect(
-  client: WalletConnectV2Client,
-  session: WalletConnectSession,
-  walletType: WalletType,
-  chainId?: string
+  client: WizardConnectClientLike,
+  session: WizardConnectSession,
+  walletType: WalletType
 ): Promise<WalletSession>
 ```
 
-Registers an externally established WalletConnect v2 session. Transitions the manager
+Registers an externally established Wizard Connect session. Transitions the manager
 from `Disconnected` to `Connected` and emits the `connected` event.
 
-- `client` — duck-typed WalletConnect v2 `SignClient` instance
-- `session` — the approved WalletConnect session object
+- `client` — duck-typed Wizard Connect client instance
+- `session` — the approved Wizard Connect session object
 - `walletType` — one of the `WalletType` enum values
-- `chainId` — optional CAIP-2 chain identifier; defaults to `bch:bitcoincash`
 
 Returns the `WalletSession` record for the established connection.
 
@@ -34,7 +32,7 @@ Returns the `WalletSession` record for the established connection.
 disconnect(): Promise<void>
 ```
 
-Terminates the active WalletConnect session, resets internal state to `Disconnected`,
+Terminates the active Wizard Connect session, resets internal state to `Disconnected`,
 and emits the `disconnected` event.
 
 ---
@@ -45,8 +43,8 @@ and emits the `disconnected` event.
 getAddress(): Promise<string>
 ```
 
-Returns the CashAddress of the connected wallet. The address is resolved via the
-`bch_getAccounts` JSON-RPC method on first call and cached for subsequent calls.
+Returns the CashAddress of the connected wallet. The address is resolved via
+`getAccounts()` on first call and cached for subsequent calls.
 
 Throws if the manager is not in the `Connected` state.
 
@@ -83,19 +81,6 @@ Throws if the manager is not in the `Connected` state.
 
 ---
 
-### signMessage
-
-```typescript
-signMessage(message: string): Promise<string>
-```
-
-Requests the connected wallet to sign an arbitrary UTF-8 message. Returns the signature
-as a hex string.
-
-Throws if the manager is not in the `Connected` state.
-
----
-
 ### on
 
 ```typescript
@@ -127,23 +112,23 @@ chaining.
 
 `WalletManager` emits the following events:
 
-| Event name       | Payload type              | Emitted when                                      |
-|------------------|---------------------------|---------------------------------------------------|
-| `connected`      | `WalletSession`           | A session is successfully established             |
-| `disconnected`   | `void`                    | The session is terminated                         |
-| `stateChange`    | `WalletConnectionState`   | The connection state transitions to a new value   |
-| `error`          | `Error`                   | An unrecoverable error occurs during an operation |
+| Event name    | Payload type            | Emitted when                                      |
+|---------------|-------------------------|---------------------------------------------------|
+| `connect`     | `WalletSession`         | A session is successfully established             |
+| `disconnect`  | `void`                  | The session is terminated                         |
+| `stateChange` | `WalletConnectionState` | The connection state transitions to a new value   |
+| `error`       | `Error`                 | An unrecoverable error occurs during an operation |
 
 ### Example
 
 ```typescript
 const manager = new WalletManager();
 
-manager.on("connected", (session) => {
+manager.on("connect", (session) => {
   console.log("Connected:", session.address);
 });
 
-manager.on("disconnected", () => {
+manager.on("disconnect", () => {
   console.log("Wallet disconnected");
 });
 
@@ -178,9 +163,8 @@ Enumerates the supported BCH wallet applications.
 
 ```typescript
 interface WalletSession {
-  topic:      string;
+  id:         string;
   address:    string;
-  chainId:    string;
   walletType: WalletType;
   createdAt:  number;
   expiry?:    number;
@@ -191,12 +175,11 @@ Serialisable record of an active wallet connection.
 
 | Field        | Description                                                    |
 |--------------|----------------------------------------------------------------|
-| `topic`      | WalletConnect session topic identifier                         |
+| `id`         | Wizard Connect session identifier                              |
 | `address`    | CashAddress of the connected wallet                            |
-| `chainId`    | CAIP-2 chain identifier (e.g. `bch:bitcoincash`)               |
 | `walletType` | Wallet application that approved the session                   |
-| `createdAt`  | Unix timestamp (seconds) when the session was established      |
-| `expiry`     | Optional Unix timestamp (seconds) when the session will expire |
+| `createdAt`  | Unix timestamp (ms) when the session was established           |
+| `expiry`     | Optional Unix timestamp (ms) when the session will expire      |
 
 ---
 
@@ -219,7 +202,7 @@ Represents the current phase of the wallet connection lifecycle.
 ### WalletEventName
 
 ```typescript
-type WalletEventName = "connected" | "disconnected" | "stateChange" | "error";
+type WalletEventName = "connect" | "disconnect" | "stateChange" | "error";
 ```
 
 Union of all event names emitted by `WalletManager`.
@@ -230,14 +213,65 @@ Union of all event names emitted by `WalletManager`.
 
 ```typescript
 interface WalletEventPayload {
-  connected:    WalletSession;
-  disconnected: void;
-  stateChange:  WalletConnectionState;
-  error:        Error;
+  connect:     WalletSession;
+  disconnect:  void;
+  stateChange: WalletConnectionState;
+  error:       Error;
 }
 ```
 
 Maps each event name to its payload type.
+
+---
+
+### WizardConnectClientLike
+
+```typescript
+interface WizardConnectClientLike {
+  getAccounts(): Promise<string[]>;
+  signTransaction(
+    txHex: string,
+    sourceOutputs: Array<{ satoshis: string; lockingBytecode: string }>
+  ): Promise<string>;
+  disconnect(): Promise<void>;
+}
+```
+
+Duck-typed interface for a Wizard Connect client. Pass any object that satisfies this
+shape to `WalletManager.connect()` or `WizardConnectProvider`.
+
+---
+
+### WizardConnectSession
+
+```typescript
+interface WizardConnectSession {
+  id: string;
+  expiry?: number;
+}
+```
+
+Minimal Wizard Connect session descriptor.
+
+---
+
+### BchWalletAdapter
+
+```typescript
+interface BchWalletAdapter {
+  readonly walletType: WalletType;
+  connect(): Promise<string>;
+  disconnect(): Promise<void>;
+  getAddress(): Promise<string>;
+  signTransaction(
+    txHex: string,
+    sourceOutputs: ReadonlyArray<{ satoshis: bigint; lockingBytecode: Uint8Array }>
+  ): Promise<string>;
+}
+```
+
+Modular adapter interface for adding support for additional BCH wallets.
+Implement this interface to integrate any BCH wallet into the engine.
 
 ---
 
@@ -251,5 +285,4 @@ const BCH_CHAIN_IDS: Record<BchNetwork, string> = {
 };
 ```
 
-Canonical CAIP-2 chain identifiers for each BCH network. Pass these values as the
-`chainId` parameter when calling `connect`.
+Canonical CAIP-2 chain identifiers for each BCH network. Exported for reference.

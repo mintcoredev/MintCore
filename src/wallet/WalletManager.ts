@@ -1,5 +1,5 @@
 import { MintCoreError } from "../utils/errors.js";
-import { WalletClient, WalletClientOptions, WalletConnectSession, WalletConnectV2Client } from "./WalletClient.js";
+import { WalletClient, WalletClientOptions, WizardConnectSession, WizardConnectClientLike } from "./WalletClient.js";
 import {
   BchNetwork,
   WalletConnectionState,
@@ -25,7 +25,7 @@ type EventListener<K extends WalletEventName> = (
 // ─── WalletManager ────────────────────────────────────────────────────────────
 
 /**
- * High-level orchestrator for WalletConnect v2 BCH wallet connections.
+ * High-level orchestrator for Wizard Connect BCH wallet connections.
  *
  * `WalletManager` owns the connection lifecycle — tracking the current session,
  * the connection state, and notifying subscribers of changes.  It intentionally
@@ -41,7 +41,7 @@ type EventListener<K extends WalletEventName> = (
  * manager.on("stateChange", (state) => console.log("State:", state));
  * manager.on("error", (err) => console.error("Error:", err.message));
  *
- * // Pairing / session approval is handled externally (e.g. by wc2-bch-bcr).
+ * // Connection and session approval is handled externally (e.g. by WizardConnect).
  * // Once a session exists, register it:
  * await manager.connect(client, session, WalletType.Paytaca);
  *
@@ -74,24 +74,22 @@ export class WalletManager {
   // ─── Connection lifecycle ──────────────────────────────────────────────────
 
   /**
-   * Registers an approved WalletConnect v2 session with the manager.
+   * Registers an approved Wizard Connect session with the manager.
    *
-   * The `client` and `session` objects are expected to come from the pairing /
-   * approval flow performed outside the engine (e.g. by wc2-bch-bcr).  This
-   * method wraps them in a {@link WalletClient}, resolves the wallet address,
-   * and transitions the manager to the {@link WalletConnectionState.Connected}
-   * state.
+   * The `client` and `session` objects are expected to come from the
+   * connection flow performed outside the engine (e.g. by WizardConnect).
+   * This method wraps them in a {@link WalletClient}, resolves the wallet
+   * address, and transitions the manager to the
+   * {@link WalletConnectionState.Connected} state.
    *
-   * @param client    - Initialised WalletConnect v2 SignClient.
-   * @param session   - Approved session returned by the pairing flow.
+   * @param client    - Initialised Wizard Connect client.
+   * @param session   - Approved session returned by the connection flow.
    * @param walletType - Which wallet app approved the session.
-   * @param chainId   - Optional CAIP-2 chain ID override.
    */
   async connect(
-    client: WalletConnectV2Client,
-    session: WalletConnectSession,
-    walletType: WalletType,
-    chainId?: string
+    client: WizardConnectClientLike,
+    session: WizardConnectSession,
+    walletType: WalletType
   ): Promise<WalletSession> {
     this.setState(WalletConnectionState.Connecting);
 
@@ -101,7 +99,6 @@ export class WalletManager {
         session,
         walletType,
         network: this.network,
-        ...(chainId !== undefined ? { chainId } : {}),
       };
 
       const walletClient = new WalletClient(options);
@@ -109,9 +106,8 @@ export class WalletManager {
 
       this.walletClient = walletClient;
       this.currentSession = {
-        topic: session.topic,
+        id: session.id,
         address,
-        chainId: chainId ?? (await walletClient.getSession())!.chainId,
         walletType,
         createdAt: Date.now(),
         expiry: session.expiry,
@@ -155,15 +151,14 @@ export class WalletManager {
   }
 
   /**
-   * Attempts to reconnect using a new session obtained from the pairing /
-   * approval flow.  Behaves identically to {@link connect} but transitions
+   * Attempts to reconnect using a new session obtained from the connection
+   * flow.  Behaves identically to {@link connect} but transitions
    * through the {@link WalletConnectionState.Reconnecting} state first.
    */
   async reconnect(
-    client: WalletConnectV2Client,
-    session: WalletConnectSession,
-    walletType: WalletType,
-    chainId?: string
+    client: WizardConnectClientLike,
+    session: WizardConnectSession,
+    walletType: WalletType
   ): Promise<WalletSession> {
     this.setState(WalletConnectionState.Reconnecting);
 
@@ -179,7 +174,7 @@ export class WalletManager {
     }
 
     // Delegate to connect — it will handle state transitions from Reconnecting.
-    return this.connect(client, session, walletType, chainId);
+    return this.connect(client, session, walletType);
   }
 
   // ─── Wallet operations ─────────────────────────────────────────────────────
@@ -226,14 +221,6 @@ export class WalletManager {
     }>
   ): Promise<string> {
     return this.requireClient().signTransaction(txHex, sourceOutputs);
-  }
-
-  /**
-   * Signs an arbitrary message via the connected wallet.
-   * @throws {MintCoreError} When not connected.
-   */
-  async signMessage(message: string): Promise<string> {
-    return this.requireClient().signMessage(message);
   }
 
   // ─── Event system ──────────────────────────────────────────────────────────

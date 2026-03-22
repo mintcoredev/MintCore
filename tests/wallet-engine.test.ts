@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { WalletClient, type WalletConnectV2Client, type WalletConnectSession } from "../src/wallet/WalletClient.js";
+import { WalletClient, type WizardConnectClientLike, type WizardConnectSession } from "../src/wallet/WalletClient.js";
 import { WalletManager } from "../src/wallet/WalletManager.js";
 import {
   WalletType,
@@ -13,15 +13,19 @@ import { MintCoreError } from "../src/utils/errors.js";
 const MAINNET_ADDRESS = "bitcoincash:qp63uahgrxged4z5jswyt5dn5v3lzsem6c6mz8vuwd";
 const SIGNED_TX_HEX = "deadbeef";
 const UNSIGNED_TX_HEX = "cafebabe";
-const TEST_TOPIC = "test-topic-abc";
+const TEST_SESSION_ID = "wizard-session-abc";
 
 function makeClient(overrides?: {
-  requestImpl?: (args: Parameters<WalletConnectV2Client["request"]>[0]) => Promise<unknown>;
+  getAccountsImpl?: () => Promise<string[]>;
+  signTransactionImpl?: (txHex: string, outputs: Array<{ satoshis: string; lockingBytecode: string }>) => Promise<string>;
   disconnectImpl?: () => Promise<void>;
-}): WalletConnectV2Client {
+}): WizardConnectClientLike {
   return {
-    request: vi.fn().mockImplementation(
-      overrides?.requestImpl ?? (async () => [MAINNET_ADDRESS])
+    getAccounts: vi.fn().mockImplementation(
+      overrides?.getAccountsImpl ?? (async () => [MAINNET_ADDRESS])
+    ),
+    signTransaction: vi.fn().mockImplementation(
+      overrides?.signTransactionImpl ?? (async () => SIGNED_TX_HEX)
     ),
     disconnect: vi.fn().mockImplementation(
       overrides?.disconnectImpl ?? (async () => undefined)
@@ -29,17 +33,10 @@ function makeClient(overrides?: {
   };
 }
 
-function makeSession(overrides?: Partial<WalletConnectSession>): WalletConnectSession {
+function makeSession(overrides?: Partial<WizardConnectSession>): WizardConnectSession {
   return {
-    topic: TEST_TOPIC,
+    id: TEST_SESSION_ID,
     expiry: Date.now() + 86_400_000,
-    namespaces: {
-      bch: {
-        accounts: [`bch:bitcoincash:${MAINNET_ADDRESS}`],
-        methods: ["bch_getAccounts", "bch_signTransaction", "personal_sign"],
-        events: [],
-      },
-    },
     ...overrides,
   };
 }
@@ -79,100 +76,63 @@ describe("WalletClient constructor", () => {
     expect(
       () =>
         new WalletClient({
-          client: null as unknown as WalletConnectV2Client,
+          client: null as unknown as WizardConnectClientLike,
           session: makeSession(),
           walletType: WalletType.Paytaca,
         })
     ).toThrow(MintCoreError);
   });
 
-  it("throws when session topic is empty", () => {
+  it("throws when session id is empty", () => {
     expect(
       () =>
         new WalletClient({
           client: makeClient(),
-          session: makeSession({ topic: "  " }),
+          session: makeSession({ id: "  " }),
           walletType: WalletType.Cashonize,
         })
     ).toThrow(MintCoreError);
   });
 
-  it("derives chainId from network option", () => {
-    const wc = new WalletClient({
-      client: makeClient(),
-      session: makeSession(),
-      walletType: WalletType.Zapit,
-      network: "testnet",
-    });
-    expect((wc as any).chainId).toBe("bch:bchtest");
-  });
-
-  it("respects explicit chainId override", () => {
-    const wc = new WalletClient({
-      client: makeClient(),
-      session: makeSession(),
-      walletType: WalletType.Paytaca,
-      chainId: "bch:custom",
-    });
-    expect((wc as any).chainId).toBe("bch:custom");
-  });
-
-  it("defaults to mainnet chainId", () => {
-    const wc = makeWalletClient();
-    expect((wc as any).chainId).toBe("bch:bitcoincash");
+  it("constructs successfully with valid options", () => {
+    expect(() => makeWalletClient()).not.toThrow();
   });
 });
 
 // ─── WalletClient.getAddress ──────────────────────────────────────────────────
 
 describe("WalletClient.getAddress", () => {
-  it("calls bch_getAccounts and returns the address", async () => {
-    const client = makeClient({ requestImpl: async () => [MAINNET_ADDRESS] });
+  it("calls getAccounts and returns the address", async () => {
+    const client = makeClient({ getAccountsImpl: async () => [MAINNET_ADDRESS] });
     const wc = makeWalletClient(client);
 
     const addr = await wc.getAddress();
 
     expect(addr).toBe(MAINNET_ADDRESS);
-    expect(client.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        topic: TEST_TOPIC,
-        chainId: "bch:bitcoincash",
-        request: expect.objectContaining({ method: "bch_getAccounts" }),
-      })
-    );
-  });
-
-  it("strips CAIP-10 prefix from accounts response", async () => {
-    const caip10 = `bch:bitcoincash:${MAINNET_ADDRESS}`;
-    const client = makeClient({ requestImpl: async () => [caip10] });
-    const wc = makeWalletClient(client);
-
-    const addr = await wc.getAddress();
-
-    expect(addr).toBe(MAINNET_ADDRESS);
+    expect(client.getAccounts).toHaveBeenCalled();
   });
 
   it("caches the address after the first call", async () => {
-    const client = makeClient({ requestImpl: async () => [MAINNET_ADDRESS] });
+    const client = makeClient({ getAccountsImpl: async () => [MAINNET_ADDRESS] });
     const wc = makeWalletClient(client);
 
     await wc.getAddress();
     await wc.getAddress();
 
-    expect(client.request).toHaveBeenCalledTimes(1);
+    expect(client.getAccounts).toHaveBeenCalledTimes(1);
   });
 
-  it("throws MintCoreError when bch_getAccounts returns empty array", async () => {
-    const client = makeClient({ requestImpl: async () => [] });
+  it("throws MintCoreError when getAccounts returns empty array", async () => {
+    const client = makeClient({ getAccountsImpl: async () => [] });
     const wc = makeWalletClient(client);
 
     await expect(wc.getAddress()).rejects.toThrow(MintCoreError);
     await expect(wc.getAddress()).rejects.toThrow(/no accounts/i);
   });
 
-  it("throws MintCoreError when RPC rejects", async () => {
+  it("throws MintCoreError when getAccounts rejects", async () => {
     const client = makeClient({
-      requestImpl: async () => { throw new Error("connection lost"); },
+      getAccountsImpl: async () => { throw new Error("connection lost"); },
     });
     const wc = makeWalletClient(client);
 
@@ -215,7 +175,7 @@ describe("WalletClient.getWalletType", () => {
 
 describe("WalletClient.getSession", () => {
   it("returns a WalletSession with correct fields", async () => {
-    const client = makeClient({ requestImpl: async () => [MAINNET_ADDRESS] });
+    const client = makeClient({ getAccountsImpl: async () => [MAINNET_ADDRESS] });
     const session = makeSession();
     const wc = new WalletClient({
       client,
@@ -227,9 +187,8 @@ describe("WalletClient.getSession", () => {
     const result = await wc.getSession();
 
     expect(result).not.toBeNull();
-    expect(result!.topic).toBe(TEST_TOPIC);
+    expect(result!.id).toBe(TEST_SESSION_ID);
     expect(result!.address).toBe(MAINNET_ADDRESS);
-    expect(result!.chainId).toBe("bch:bitcoincash");
     expect(result!.walletType).toBe(WalletType.Paytaca);
     expect(typeof result!.createdAt).toBe("number");
     expect(result!.expiry).toBe(session.expiry);
@@ -251,53 +210,54 @@ describe("WalletClient.signTransaction", () => {
     { satoshis: 100_000n, lockingBytecode: new Uint8Array([0x76, 0xa9, 0x14]) },
   ] as const;
 
-  it("calls bch_signTransaction and returns signed hex", async () => {
-    const client = makeClient({ requestImpl: async () => SIGNED_TX_HEX });
+  it("calls signTransaction on the client and returns signed hex", async () => {
+    const client = makeClient({ signTransactionImpl: async () => SIGNED_TX_HEX });
     const wc = makeWalletClient(client);
 
     const result = await wc.signTransaction(UNSIGNED_TX_HEX, SOURCE_OUTPUTS);
 
     expect(result).toBe(SIGNED_TX_HEX);
-    expect(client.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        request: expect.objectContaining({ method: "bch_signTransaction" }),
-      })
+    expect(client.signTransaction).toHaveBeenCalledWith(
+      UNSIGNED_TX_HEX,
+      expect.arrayContaining([
+        expect.objectContaining({ satoshis: "100000", lockingBytecode: "76a914" }),
+      ])
     );
   });
 
   it("serialises satoshis as a string", async () => {
-    const client = makeClient({ requestImpl: async () => SIGNED_TX_HEX });
+    const client = makeClient({ signTransactionImpl: async () => SIGNED_TX_HEX });
     const wc = makeWalletClient(client);
 
     await wc.signTransaction(UNSIGNED_TX_HEX, SOURCE_OUTPUTS);
 
-    const call = (client.request as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    const { sourceOutputs } = call.request.params as { sourceOutputs: Array<{ satoshis: string }> };
-    expect(typeof sourceOutputs[0].satoshis).toBe("string");
-    expect(sourceOutputs[0].satoshis).toBe("100000");
+    const call = (client.signTransaction as ReturnType<typeof vi.fn>).mock.calls[0];
+    const outputs = call[1] as Array<{ satoshis: string }>;
+    expect(typeof outputs[0].satoshis).toBe("string");
+    expect(outputs[0].satoshis).toBe("100000");
   });
 
   it("serialises lockingBytecode as lowercase hex (using src/utils/hex.ts toHex)", async () => {
-    const client = makeClient({ requestImpl: async () => SIGNED_TX_HEX });
+    const client = makeClient({ signTransactionImpl: async () => SIGNED_TX_HEX });
     const wc = makeWalletClient(client);
 
     await wc.signTransaction(UNSIGNED_TX_HEX, SOURCE_OUTPUTS);
 
-    const call = (client.request as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    const { sourceOutputs } = call.request.params as { sourceOutputs: Array<{ lockingBytecode: string }> };
-    expect(sourceOutputs[0].lockingBytecode).toBe("76a914");
+    const call = (client.signTransaction as ReturnType<typeof vi.fn>).mock.calls[0];
+    const outputs = call[1] as Array<{ lockingBytecode: string }>;
+    expect(outputs[0].lockingBytecode).toBe("76a914");
   });
 
   it("throws MintCoreError when wallet returns an empty string", async () => {
-    const client = makeClient({ requestImpl: async () => "" });
+    const client = makeClient({ signTransactionImpl: async () => "" });
     const wc = makeWalletClient(client);
 
     await expect(wc.signTransaction(UNSIGNED_TX_HEX, SOURCE_OUTPUTS)).rejects.toThrow(MintCoreError);
   });
 
-  it("throws MintCoreError when RPC rejects", async () => {
+  it("throws MintCoreError when signTransaction rejects", async () => {
     const client = makeClient({
-      requestImpl: async () => { throw new Error("user rejected"); },
+      signTransactionImpl: async () => { throw new Error("user rejected"); },
     });
     const wc = makeWalletClient(client);
 
@@ -312,63 +272,16 @@ describe("WalletClient.signTransaction", () => {
   });
 });
 
-// ─── WalletClient.signMessage ─────────────────────────────────────────────────
-
-describe("WalletClient.signMessage", () => {
-  it("calls personal_sign and returns the signature", async () => {
-    const SIG = "sig-abc";
-    const client = makeClient({ requestImpl: async () => SIG });
-    const wc = makeWalletClient(client);
-
-    const result = await wc.signMessage("Hello BCH");
-
-    expect(result).toBe(SIG);
-    expect(client.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        request: expect.objectContaining({
-          method: "personal_sign",
-          params: { message: "Hello BCH" },
-        }),
-      })
-    );
-  });
-
-  it("throws MintCoreError when wallet returns an empty string", async () => {
-    const client = makeClient({ requestImpl: async () => "" });
-    const wc = makeWalletClient(client);
-
-    await expect(wc.signMessage("hello")).rejects.toThrow(MintCoreError);
-  });
-
-  it("throws MintCoreError when RPC rejects", async () => {
-    const client = makeClient({
-      requestImpl: async () => { throw new Error("sign rejected"); },
-    });
-    const wc = makeWalletClient(client);
-
-    await expect(wc.signMessage("hello")).rejects.toThrow(/sign rejected/i);
-  });
-
-  it("throws after disconnect", async () => {
-    const wc = makeWalletClient();
-    await wc.disconnect();
-
-    await expect(wc.signMessage("hello")).rejects.toThrow(MintCoreError);
-  });
-});
-
 // ─── WalletClient.disconnect ──────────────────────────────────────────────────
 
 describe("WalletClient.disconnect", () => {
-  it("calls client.disconnect with the correct topic", async () => {
+  it("calls client.disconnect", async () => {
     const client = makeClient();
     const wc = makeWalletClient(client);
 
     await wc.disconnect();
 
-    expect(client.disconnect).toHaveBeenCalledWith(
-      expect.objectContaining({ topic: TEST_TOPIC })
-    );
+    expect(client.disconnect).toHaveBeenCalled();
   });
 
   it("is idempotent — second call is a no-op", async () => {
@@ -394,12 +307,12 @@ describe("WalletClient.disconnect", () => {
 // ─── WalletManager ────────────────────────────────────────────────────────────
 
 describe("WalletManager", () => {
-  let client: WalletConnectV2Client;
-  let session: WalletConnectSession;
+  let client: WizardConnectClientLike;
+  let session: WizardConnectSession;
   let manager: WalletManager;
 
   beforeEach(() => {
-    client = makeClient({ requestImpl: async () => [MAINNET_ADDRESS] });
+    client = makeClient({ getAccountsImpl: async () => [MAINNET_ADDRESS] });
     session = makeSession();
     manager = new WalletManager({ network: "mainnet" });
   });
@@ -416,10 +329,9 @@ describe("WalletManager", () => {
   it("connect() returns a WalletSession with expected fields", async () => {
     const result = await manager.connect(client, session, WalletType.Paytaca);
 
-    expect(result.topic).toBe(TEST_TOPIC);
+    expect(result.id).toBe(TEST_SESSION_ID);
     expect(result.address).toBe(MAINNET_ADDRESS);
     expect(result.walletType).toBe(WalletType.Paytaca);
-    expect(result.chainId).toBe("bch:bitcoincash");
   });
 
   it("getSession() returns the active session after connect", async () => {
@@ -445,13 +357,9 @@ describe("WalletManager", () => {
   });
 
   it("signTransaction() delegates to WalletClient", async () => {
-    // First call (bch_getAccounts) returns the address; subsequent calls return signed tx hex.
-    let callCount = 0;
     const sigClient = makeClient({
-      requestImpl: async () => {
-        callCount++;
-        return callCount === 1 ? [MAINNET_ADDRESS] : SIGNED_TX_HEX;
-      },
+      getAccountsImpl: async () => [MAINNET_ADDRESS],
+      signTransactionImpl: async () => SIGNED_TX_HEX,
     });
     await manager.connect(sigClient, session, WalletType.Paytaca);
 
@@ -459,22 +367,6 @@ describe("WalletManager", () => {
       { satoshis: 1000n, lockingBytecode: new Uint8Array([0x76]) },
     ]);
     expect(result).toBe(SIGNED_TX_HEX);
-  });
-
-  it("signMessage() delegates to WalletClient", async () => {
-    const SIG = "my-signature";
-    // First call (bch_getAccounts) returns the address; subsequent call returns the signature.
-    let callCount = 0;
-    const sigClient = makeClient({
-      requestImpl: async () => {
-        callCount++;
-        return callCount === 1 ? [MAINNET_ADDRESS] : SIG;
-      },
-    });
-    await manager.connect(sigClient, session, WalletType.Paytaca);
-
-    const result = await manager.signMessage("hello world");
-    expect(result).toBe(SIG);
   });
 
   it("disconnect() transitions to Disconnected state", async () => {
@@ -546,7 +438,7 @@ describe("WalletManager", () => {
 
   it("emits 'error' and throws when connect fails", async () => {
     const failClient = makeClient({
-      requestImpl: async () => { throw new Error("pairing failed"); },
+      getAccountsImpl: async () => { throw new Error("pairing failed"); },
     });
     const errorHandler = vi.fn();
     manager.on("error", errorHandler);
@@ -581,12 +473,12 @@ describe("WalletManager", () => {
     await manager.connect(client, session, WalletType.Paytaca);
 
     const newAddress = "bitcoincash:qaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    const newClient = makeClient({ requestImpl: async () => [newAddress] });
-    const newSession = makeSession({ topic: "new-topic" });
+    const newClient = makeClient({ getAccountsImpl: async () => [newAddress] });
+    const newSession = makeSession({ id: "new-session-id" });
 
     await manager.reconnect(newClient, newSession, WalletType.Cashonize);
 
-    expect(manager.getSession()!.topic).toBe("new-topic");
+    expect(manager.getSession()!.id).toBe("new-session-id");
     expect(manager.getSession()!.walletType).toBe(WalletType.Cashonize);
   });
 });

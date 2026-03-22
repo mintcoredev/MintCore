@@ -1,7 +1,6 @@
 import { MintCoreError } from "../utils/errors.js";
 import { toHex } from "../utils/hex.js";
 import {
-  BCH_CHAIN_IDS,
   BchNetwork,
   WalletSession,
   WalletType,
@@ -10,51 +9,61 @@ import {
 // ─── Duck-typed interfaces ─────────────────────────────────────────────────────
 
 /**
- * Minimal duck-typed interface for any WalletConnect v2 SignClient (or any
- * compatible implementation such as wc2-bch-bcr).
+ * Minimal duck-typed interface for a Wizard Connect client.
  *
  * Keeping this interface narrow avoids a hard dependency on any specific
- * WalletConnect package while staying fully compatible with the real clients.
+ * Wizard Connect package while remaining fully compatible with any
+ * conforming implementation.
+ *
+ * Wizard Connect is a BCH-native wallet connection protocol — there are no
+ * multi-chain abstractions, CAIP-2 chain IDs, or JSON-RPC session topics.
  */
-export interface WalletConnectV2Client {
-  /** Send a JSON-RPC request over an active session. */
-  request<T>(args: {
-    topic: string;
-    chainId: string;
-    request: { method: string; params: unknown };
-  }): Promise<T>;
+export interface WizardConnectClientLike {
+  /**
+   * Returns the list of CashAddr strings managed by the connected wallet.
+   * Each entry is a standard BCH CashAddress, e.g. `"bitcoincash:q..."`.
+   */
+  getAccounts(): Promise<string[]>;
 
-  /** Disconnect / delete an active session. */
-  disconnect(args: { topic: string; reason: { code: number; message: string } }): Promise<void>;
+  /**
+   * Signs a BCH transaction and returns the signed transaction hex.
+   *
+   * @param txHex - Unsigned transaction as a lowercase hex string.
+   * @param sourceOutputs - UTXOs being spent, serialised for the wallet.
+   */
+  signTransaction(
+    txHex: string,
+    sourceOutputs: Array<{ satoshis: string; lockingBytecode: string }>
+  ): Promise<string>;
+
+  /** Closes the wallet connection. */
+  disconnect(): Promise<void>;
 }
 
 /**
- * Subset of a WalletConnect v2 `SessionTypes.Struct` that WalletClient needs.
+ * A Wizard Connect session descriptor returned by the connection flow.
  */
-export interface WalletConnectSession {
-  topic: string;
+export interface WizardConnectSession {
+  /** Unique session identifier assigned by the wallet. */
+  id: string;
+  /** Optional expiry timestamp (ms). */
   expiry?: number;
-  namespaces: Record<
-    string,
-    { accounts: string[]; methods: string[]; events: string[] }
-  >;
 }
 
 // ─── Options ──────────────────────────────────────────────────────────────────
 
 export interface WalletClientOptions {
   /**
-   * An initialised WalletConnect v2 SignClient (e.g. from wc2-bch-bcr or
-   * `@walletconnect/sign-client`).  The client must already have a valid
-   * approved session before `WalletClient` can be used.
+   * An initialised Wizard Connect client.  The client must already have an
+   * active session before `WalletClient` can be used.
    */
-  client: WalletConnectV2Client;
+  client: WizardConnectClientLike;
 
   /**
-   * The WalletConnect session to wrap.  Obtain it via the pairing / approval
-   * flow that is managed outside this engine layer.
+   * The Wizard Connect session to wrap.  Obtain it via the connection flow
+   * managed outside this engine layer.
    */
-  session: WalletConnectSession;
+  session: WizardConnectSession;
 
   /**
    * Which wallet application approved this session.
@@ -63,46 +72,34 @@ export interface WalletClientOptions {
   walletType: WalletType;
 
   /**
-   * BCH network for this connection.  Determines the CAIP-2 chain identifier
-   * used in all RPC calls.  Defaults to `"mainnet"`.
+   * BCH network for this connection.  Used for informational purposes only —
+   * Wizard Connect is BCH-native and does not require a CAIP-2 chain ID.
+   * Defaults to `"mainnet"`.
    */
   network?: BchNetwork;
-
-  /**
-   * Override the CAIP-2 chain identifier.  When omitted the value is derived
-   * from `network` using {@link BCH_CHAIN_IDS}.
-   */
-  chainId?: string;
 }
 
 // ─── WalletClient ─────────────────────────────────────────────────────────────
 
 /**
- * Low-level WalletConnect v2 adapter for BCH.
+ * Low-level Wizard Connect adapter for BCH.
  *
- * Wraps a wc2-bch-bcr (or any compatible) WalletConnect v2 SignClient and
- * provides a clean, typed API for address resolution, transaction signing, and
- * message signing without any UI or browser-specific logic.
+ * Wraps a {@link WizardConnectClientLike} and provides a clean, typed API for
+ * address resolution and transaction signing without any UI or browser-specific
+ * logic.
  *
- * ### Supported namespaces
- * | Network  | CAIP-2 chain ID      |
- * |----------|----------------------|
- * | mainnet  | `bch:bitcoincash`    |
- * | testnet  | `bch:bchtest`        |
- * | regtest  | `bch:bchreg`         |
- *
- * ### RPC methods used
- * | Method                | When called              |
- * |-----------------------|--------------------------|
- * | `bch_getAccounts`     | {@link getAddress}       |
- * | `bch_signTransaction` | {@link signTransaction}  |
- * | `personal_sign`       | {@link signMessage}      |
+ * ### Operations
+ * | Method                | Description                              |
+ * |-----------------------|------------------------------------------|
+ * | `getAddress()`        | Resolves the connected CashAddress       |
+ * | `signTransaction()`   | Signs a BCH transaction via the wallet   |
+ * | `disconnect()`        | Terminates the wallet connection         |
  */
 export class WalletClient {
-  private readonly client: WalletConnectV2Client;
-  private readonly session: WalletConnectSession;
+  private readonly client: WizardConnectClientLike;
+  private readonly session: WizardConnectSession;
   private readonly walletType: WalletType;
-  private readonly chainId: string;
+  private readonly network: BchNetwork;
   private cachedAddress: string | undefined;
   private disconnected = false;
 
@@ -110,15 +107,14 @@ export class WalletClient {
     if (!options.client) {
       throw new MintCoreError("WalletClient: client is required");
     }
-    if (!options.session || !options.session.topic || options.session.topic.trim() === "") {
-      throw new MintCoreError("WalletClient: a valid session with a non-empty topic is required");
+    if (!options.session || !options.session.id || options.session.id.trim() === "") {
+      throw new MintCoreError("WalletClient: a valid session with a non-empty id is required");
     }
 
     this.client = options.client;
     this.session = options.session;
     this.walletType = options.walletType;
-    this.chainId =
-      options.chainId ?? BCH_CHAIN_IDS[options.network ?? "mainnet"];
+    this.network = options.network ?? "mainnet";
   }
 
   // ─── Public API ─────────────────────────────────────────────────────────────
@@ -134,41 +130,29 @@ export class WalletClient {
       return this.cachedAddress;
     }
 
-    let accounts: unknown;
+    let accounts: string[];
     try {
-      accounts = await this.client.request<unknown>({
-        topic: this.session.topic,
-        chainId: this.chainId,
-        request: { method: "bch_getAccounts", params: {} },
-      });
+      accounts = await this.client.getAccounts();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WalletClient bch_getAccounts failed: ${msg}`);
+      throw new MintCoreError(`WalletClient getAccounts failed: ${msg}`);
     }
 
     if (!Array.isArray(accounts) || accounts.length === 0) {
       throw new MintCoreError(
-        "WalletClient: bch_getAccounts returned no accounts"
+        "WalletClient: getAccounts returned no accounts"
       );
     }
 
     const raw: unknown = accounts[0];
     if (typeof raw !== "string" || raw.trim() === "") {
       throw new MintCoreError(
-        "WalletClient: bch_getAccounts returned an invalid account entry"
+        "WalletClient: getAccounts returned an invalid account entry"
       );
     }
 
-    // Accounts may arrive in CAIP-10 format:
-    //   "<namespace>:<chain_ref>:<cashaddr_prefix>:<payload>"
-    // e.g. "bch:bitcoincash:bitcoincash:qp63uah..."
-    // A standard BCH CashAddr has exactly 2 colon-separated segments, so a
-    // CAIP-10 account string will have at least 4 segments.
-    const parts = raw.split(":");
-    const address = parts.length >= 4 ? parts.slice(2).join(":") : raw;
-
-    this.cachedAddress = address;
-    return address;
+    this.cachedAddress = raw;
+    return raw;
   }
 
   /**
@@ -195,9 +179,8 @@ export class WalletClient {
     }
 
     return {
-      topic: this.session.topic,
+      id: this.session.id,
       address,
-      chainId: this.chainId,
       walletType: this.walletType,
       createdAt: Date.now(),
       expiry: this.session.expiry,
@@ -227,22 +210,15 @@ export class WalletClient {
 
     let result: unknown;
     try {
-      result = await this.client.request<unknown>({
-        topic: this.session.topic,
-        chainId: this.chainId,
-        request: {
-          method: "bch_signTransaction",
-          params: { transaction: txHex, sourceOutputs: serialisedOutputs },
-        },
-      });
+      result = await this.client.signTransaction(txHex, serialisedOutputs);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WalletClient bch_signTransaction failed: ${msg}`);
+      throw new MintCoreError(`WalletClient signTransaction failed: ${msg}`);
     }
 
     if (typeof result !== "string" || result.trim() === "") {
       throw new MintCoreError(
-        "WalletClient: bch_signTransaction returned an invalid response"
+        "WalletClient: signTransaction returned an invalid response"
       );
     }
 
@@ -250,48 +226,7 @@ export class WalletClient {
   }
 
   /**
-   * Signs an arbitrary message via the connected wallet.
-   *
-   * The message is sent via the `personal_sign` JSON-RPC method, which most
-   * BCH wallets (Paytaca, Cashonize, Zapit) support alongside the standard
-   * transaction-signing methods.
-   *
-   * @param message - Plain-text message to sign.
-   * @returns Signature as returned by the wallet (format depends on the wallet).
-   */
-  async signMessage(message: string): Promise<string> {
-    this.assertConnected();
-
-    if (typeof message !== "string") {
-      throw new MintCoreError("WalletClient: message must be a string");
-    }
-
-    let result: unknown;
-    try {
-      result = await this.client.request<unknown>({
-        topic: this.session.topic,
-        chainId: this.chainId,
-        request: {
-          method: "personal_sign",
-          params: { message },
-        },
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WalletClient personal_sign failed: ${msg}`);
-    }
-
-    if (typeof result !== "string" || result.trim() === "") {
-      throw new MintCoreError(
-        "WalletClient: personal_sign returned an invalid response"
-      );
-    }
-
-    return result;
-  }
-
-  /**
-   * Terminates the WalletConnect session.
+   * Terminates the Wizard Connect session.
    *
    * After calling `disconnect()` all subsequent method calls will throw a
    * {@link MintCoreError}.
@@ -302,10 +237,7 @@ export class WalletClient {
     }
 
     try {
-      await this.client.disconnect({
-        topic: this.session.topic,
-        reason: { code: 6000, message: "User disconnected" },
-      });
+      await this.client.disconnect();
     } catch {
       // Swallow errors from the underlying transport — the session is
       // considered terminated regardless.

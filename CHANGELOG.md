@@ -30,6 +30,42 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
+## [1.3.0] - 2026-03-22 — Wizard Connect Engine (replaces WalletConnect v2)
+
+### Added
+
+- **Wizard Connect support for Bitcoin Cash** — the wallet engine now uses Wizard
+  Connect, a BCH-native protocol. No WalletConnect, EVM chain IDs, or multi-chain
+  abstractions.
+- **`WizardConnectClientLike`** — duck-typed interface for Wizard Connect clients;
+  exposes `getAccounts()`, `signTransaction()`, and `disconnect()`.
+- **`WizardConnectSession`** — minimal session descriptor with `id` and optional
+  `expiry`.
+- **`WizardConnectProvider`** — `WalletProvider` adapter for Wizard Connect;
+  implements `getAddress()` and `signTransaction()`.
+- **`BchWalletAdapter`** — modular adapter interface for adding BCH wallet support;
+  implement to integrate any BCH wallet into the engine.
+
+### Changed
+
+- **`WalletClient`** — now wraps `WizardConnectClientLike` instead of `WalletConnectV2Client`.
+- **`WalletManager.connect()` / `reconnect()`** — no longer accept a `chainId` parameter.
+- **`WalletSession`** — `topic` renamed to `id`; `chainId` field removed.
+
+### Removed
+
+- **`WalletConnectProvider`** — replaced by `WizardConnectProvider`.
+- **`WalletConnectClientLike`** — replaced by `WizardConnectClientLike`.
+- **`WalletConnectProviderOptions`** — replaced by `WizardConnectProviderOptions`.
+- **`WalletConnectV2Client`** — replaced by `WizardConnectClientLike`.
+- **`WalletConnectSession`** — replaced by `WizardConnectSession`.
+- **`WalletSession.topic`** and **`WalletSession.chainId`** — removed; use `id` instead.
+- **`WalletClient.signMessage()`** and **`WalletManager.signMessage()`** — removed;
+  `personal_sign` is an EVM-derived method and not part of the BCH-native Wizard Connect
+  protocol.
+
+---
+
 ## [1.2.0] - 2026-03-21 — WalletConnect v2 Engine
 
 ### Added
