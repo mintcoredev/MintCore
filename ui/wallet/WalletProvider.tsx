@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { WalletAdapter } from "../wallet/adapters/WalletAdapter.js";
+import type { WalletAdapter } from "./WalletAdapter.js";
 import type {
   WalletContextValue,
   WalletProviderProps,
@@ -35,14 +35,14 @@ export const WalletContext = createContext<WalletContextValue | null>(null);
  *
  * ### Setup
  * ```tsx
- * import { WizardAdapter, createWalletRegistry } from "mintcore";
- * import { WalletProvider } from "mintcore/react";
+ * import { WizardAdapter } from "mintcore";
+ * import { WalletProvider } from "@mintcore/ui";
  *
- * const registry = createWalletRegistry([new WizardAdapter({ client })]);
+ * const adapters = [new WizardAdapter({ client })];
  *
  * function App() {
  *   return (
- *     <WalletProvider adapters={registry.getAll()} autoConnect>
+ *     <WalletProvider adapters={adapters} autoConnect>
  *       <YourApp />
  *     </WalletProvider>
  *   );
@@ -214,13 +214,15 @@ export function WalletProvider({
     }
 
     if (lastWallet && adapters.some((a) => a.name === lastWallet)) {
-      connect(lastWallet).catch(() => {
-        // Auto-reconnect failures are silent — the user can reconnect manually.
+      connect(lastWallet).catch((err: unknown) => {
+        // Surface auto-reconnect failures via the error state so the UI can
+        // prompt the user to reconnect manually.
+        handleError(err);
       });
     }
     // `connect` is stable (wrapped in useCallback). We intentionally only
-    // run this effect on mount so that auto-reconnect does not re-trigger
-    // when the `adapters` array reference changes (e.g. on re-renders).
+    // run this effect on autoConnect changes so that auto-reconnect does not
+    // re-trigger when the `adapters` array reference changes (e.g. on re-renders).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoConnect]);
 

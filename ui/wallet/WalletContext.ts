@@ -1,4 +1,4 @@
-import type { WalletAdapter } from "../wallet/adapters/WalletAdapter.js";
+import type { WalletAdapter } from "./WalletAdapter.js";
 
 // ─── Connection state ─────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { useWallet } from "./useWallet.js";
+import { useWallet } from "../wallet/useWallet.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ export interface ConnectWalletButtonProps {
  *
  * ### Usage
  * ```tsx
- * import { ConnectWalletButton } from "mintcore/react";
+ * import { ConnectWalletButton } from "@mintcore/ui";
  *
  * function Header() {
  *   return (

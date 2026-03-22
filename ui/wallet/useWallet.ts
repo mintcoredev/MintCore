@@ -15,7 +15,7 @@ import type { WalletContextValue } from "./WalletContext.js";
  *
  * ### Usage
  * ```tsx
- * import { useWallet } from "mintcore/react";
+ * import { useWallet } from "@mintcore/ui";
  *
  * function MyComponent() {
  *   const {
