@@ -8,6 +8,10 @@
     ".": {
       "import": "./dist/api/mintcore.js",
       "types": "./dist/api/mintcore.d.ts"
+    },
+    "./react": {
+      "import": "./dist/react/index.js",
+      "types": "./dist/react/index.d.ts"
     }
   },
   "type": "module",
@@ -26,8 +30,18 @@
   "dependencies": {
     "@bitauth/libauth": "2.0.0"
   },
+  "peerDependencies": {
+    "react": ">=17.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "react": "^18.0.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"

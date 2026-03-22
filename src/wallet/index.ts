@@ -30,3 +30,14 @@ export {
 } from "./WalletTypes.js";
 
 export type { BchWalletAdapter } from "./adapters/BchWalletAdapter.js";
+export type { WalletAdapter } from "./adapters/WalletAdapter.js";
+export {
+  WizardAdapter,
+  type WizardAdapterClientLike,
+  type BchSourceOutput,
+} from "./adapters/WizardAdapter.js";
+
+export {
+  WalletRegistry,
+  createWalletRegistry,
+} from "./registry.js";

@@ -31,6 +31,9 @@ export {
   WalletType,
   WalletConnectionState,
   BCH_CHAIN_IDS,
+  WizardAdapter,
+  WalletRegistry,
+  createWalletRegistry,
 } from "./wallet/index.js";
 export type {
   WalletClientOptions,
@@ -42,4 +45,7 @@ export type {
   WalletEventName,
   WalletEventPayload,
   BchWalletAdapter,
+  WalletAdapter,
+  WizardAdapterClientLike,
+  BchSourceOutput,
 } from "./wallet/index.js";
