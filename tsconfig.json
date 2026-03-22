@@ -15,5 +15,5 @@
     "resolveJsonModule": true
   },
   "include": ["src", "modules", "api"],
-  "exclude": ["node_modules", "dist", "ui"]
+  "exclude": ["node_modules", "dist", "ui", "src/ui"]
 }
