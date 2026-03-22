@@ -1,0 +1,29 @@
+name: Security - SAST
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/javascript
+            p/python
+
+  codeql:
+    uses: github/codeql-action/.github/workflows/codeql.yml@v3
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    with:
+      languages: "[javascript, python]"
