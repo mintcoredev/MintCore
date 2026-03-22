@@ -419,11 +419,16 @@ describe("WalletRegistry", () => {
 
   it("getAll() returns all registered adapters", () => {
     const a1 = makeAdapter();
-    // Use a second adapter with a different name for this test
-    const secondClient = makeClient();
-    const a2 = new WizardAdapter({ client: secondClient });
-    // Temporarily override the name for testing purposes
-    Object.defineProperty(a2, "name", { value: "AnotherWallet", configurable: true });
+    // Use a plain object adapter with a different name to test multi-adapter registration
+    const a2: import("../src/wallet/adapters/WalletAdapter.js").WalletAdapter = {
+      name: "AnotherWallet",
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
+      getAddress: vi.fn().mockResolvedValue(MAINNET_ADDRESS),
+      signMessage: vi.fn().mockResolvedValue(SIGNATURE_HEX),
+      signTransaction: vi.fn().mockResolvedValue(new Uint8Array()),
+      on: vi.fn(),
+    };
     const registry = new WalletRegistry();
     registry.register(a1);
     registry.register(a2);

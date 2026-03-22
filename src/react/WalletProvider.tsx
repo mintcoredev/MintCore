@@ -218,9 +218,11 @@ export function WalletProvider({
         // Auto-reconnect failures are silent — the user can reconnect manually.
       });
     }
-    // Only run on mount
+    // `connect` is stable (wrapped in useCallback). We intentionally only
+    // run this effect on mount so that auto-reconnect does not re-trigger
+    // when the `adapters` array reference changes (e.g. on re-renders).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [autoConnect]);
 
   // ── Cleanup on unmount ──────────────────────────────────────────────────────
 
