@@ -1,5 +1,5 @@
 /**
- * Supported BCH wallet applications that can be connected via WalletConnect v2.
+ * Supported BCH wallet applications that can be connected via Wizard Connect.
  */
 export enum WalletType {
   Paytaca = "paytaca",
@@ -13,7 +13,7 @@ export enum WalletType {
 export type BchNetwork = "mainnet" | "testnet" | "regtest";
 
 /**
- * CAIP-2 chain identifiers used by BCH wallets in the wc2-bch-bcr protocol.
+ * CAIP-2 chain identifiers used by BCH wallets.
  */
 export const BCH_CHAIN_IDS: Record<BchNetwork, string> = {
   mainnet: "bch:bitcoincash",
@@ -33,15 +33,13 @@ export enum WalletConnectionState {
 }
 
 /**
- * Represents an established WalletConnect v2 session for a BCH wallet.
+ * Represents an established Wizard Connect session for a BCH wallet.
  */
 export interface WalletSession {
-  /** WalletConnect session topic (unique identifier for this session). */
-  topic: string;
+  /** Wizard Connect session identifier (unique per connection). */
+  id: string;
   /** CashAddr (with network prefix) of the connected wallet account. */
   address: string;
-  /** CAIP-2 chain identifier, e.g. `"bch:bitcoincash"`. */
-  chainId: string;
   /** Wallet application that approved this session. */
   walletType: WalletType;
   /** Unix timestamp (ms) when the session was established. */

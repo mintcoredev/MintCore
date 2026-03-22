@@ -6,7 +6,7 @@ A minimal [CashTokens](https://cashtokens.org/) minting library for Bitcoin Cash
 
 - Mint fungible tokens (FT) and non-fungible tokens (NFT) on BCH
 - **Batch minting** — plan and execute large-scale mint operations across multiple optimised transactions using `BatchMintEngine`
-- **WalletConnect v2** — connect BCH wallets (Paytaca, Cashonize, Zapit) without exposing a private key
+- **Wizard Connect** — connect BCH wallets (Paytaca, Cashonize, Zapit) without exposing a private key
 - **On-chain accounting** — in-memory ledger with `AccountingAPI`: mint, transfer, burn, reward, fee collection, and balance queries
 - Offline transaction building (no network required for genesis transactions)
 - UTXO-funded transaction building via [Chronik](https://chronik.be.cash/) or ElectrumX / Fulcrum
@@ -114,17 +114,19 @@ const nftResult = await mintNFT(
 |--------|-------------|
 | `ChronikProvider` | Fetch UTXOs and broadcast via a Chronik instance |
 | `ElectrumXProvider` | Fetch UTXOs and broadcast via ElectrumX / Fulcrum |
-| `WalletConnectProvider` | Sign transactions via a WalletConnect v2 session |
+| `WizardConnectProvider` | Sign transactions via a Wizard Connect session |
 
 ### Wallet Engine
 
 | Export | Description |
 |--------|-------------|
 | `WalletManager` | High-level lifecycle orchestrator; manages connect/disconnect/sign |
-| `WalletClient` | Low-level WalletConnect v2 adapter |
+| `WalletClient` | Low-level Wizard Connect adapter |
 | `WalletType` | Enum of supported BCH wallet applications (Paytaca, Cashonize, Zapit) |
 | `WalletConnectionState` | Enum of connection lifecycle states |
 | `BCH_CHAIN_IDS` | CAIP-2 chain identifiers for mainnet / testnet / regtest |
+| `WizardConnectProvider` | `WalletProvider` adapter for Wizard Connect |
+| `BchWalletAdapter` | Modular interface for adding BCH wallet adapters |
 
 ### Accounting
 
@@ -162,7 +164,7 @@ const nftResult = await mintNFT(
 
 ### Types
 
-`MintConfig`, `TokenSchema`, `NftOptions`, `TokenCapability`, `MintResult`, `Utxo`, `BuiltTransaction`, `WalletProvider`, `CoinSelectResult`, `MintRequest`, `BatchMintOptions`, `BatchMintPlan`, `PlannedTransaction`, `MintExecutionResult`, `WalletConnectClientLike`, `WalletConnectProviderOptions`, `WalletSession`, `WalletEventName`, `WalletEventPayload`, `AdjustmentParams`, `AdjustmentDirection`
+`MintConfig`, `TokenSchema`, `NftOptions`, `TokenCapability`, `MintResult`, `Utxo`, `BuiltTransaction`, `WalletProvider`, `CoinSelectResult`, `MintRequest`, `BatchMintOptions`, `BatchMintPlan`, `PlannedTransaction`, `MintExecutionResult`, `WizardConnectClientLike`, `WizardConnectProviderOptions`, `WizardConnectSession`, `BchWalletAdapter`, `WalletSession`, `WalletEventName`, `WalletEventPayload`, `AdjustmentParams`, `AdjustmentDirection`
 
 ## Key Generation
 
