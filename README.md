@@ -122,6 +122,9 @@ const nftResult = await mintNFT(
 |--------|-------------|
 | `WalletManager` | High-level lifecycle orchestrator; manages connect/disconnect/sign |
 | `WalletClient` | Low-level Wizard Connect adapter |
+| `WizardAdapter` | `WalletAdapter` implementation for Wizard Connect |
+| `WalletRegistry` | Registry of available wallet adapters |
+| `createWalletRegistry` | Factory: creates a `WalletRegistry` pre-populated with adapters |
 | `WalletType` | Enum of supported BCH wallet applications (Paytaca, Cashonize, Zapit) |
 | `WalletConnectionState` | Enum of connection lifecycle states |
 | `BCH_CHAIN_IDS` | CAIP-2 chain identifiers for mainnet / testnet / regtest |
@@ -141,6 +144,55 @@ const nftResult = await mintNFT(
 | `createRoyaltyRule` | Rule: route a percentage of each transfer to a recipient |
 | `createXpThresholdRule` | Rule: require a minimum XP balance to perform an operation |
 | `createQuestRewardRule` | Rule: issue a fixed reward when a quest is completed |
+
+### React UI (`@mintcore/ui`)
+
+The `@mintcore/ui` package provides React bindings for the wallet engine. It is a
+separate package — the core `mintcore` SDK has no React dependency.
+
+Install it alongside `mintcore`:
+
+```bash
+npm install mintcore @mintcore/ui
+```
+
+| Export | Description |
+|--------|-------------|
+| `WalletProvider` | React context provider; manages wallet state and exposes actions to children |
+| `useWallet` | Primary React hook; returns the current wallet state and action functions |
+| `ConnectWalletButton` | Self-contained connect/disconnect button component |
+| `WizardAdapter` | Re-export of the SDK `WizardAdapter` (for convenience) |
+
+#### Quick start
+
+```tsx
+import { WizardAdapter, createWalletRegistry } from "mintcore";
+import { WalletProvider, ConnectWalletButton } from "@mintcore/ui";
+
+const adapters = [new WizardAdapter({ client: wizardClient })];
+
+function App() {
+  return (
+    <WalletProvider adapters={adapters} autoConnect>
+      <ConnectWalletButton />
+    </WalletProvider>
+  );
+}
+```
+
+#### `useWallet` hook
+
+```tsx
+import { useWallet } from "@mintcore/ui";
+
+function MyComponent() {
+  const { address, isConnected, connect, disconnect } = useWallet();
+
+  return isConnected
+    ? <button onClick={disconnect}>Disconnect {address}</button>
+    : <button onClick={() => connect("WizardConnect")}>Connect</button>;
+}
+```
 
 ### Utilities
 
@@ -164,7 +216,7 @@ const nftResult = await mintNFT(
 
 ### Types
 
-`MintConfig`, `TokenSchema`, `NftOptions`, `TokenCapability`, `MintResult`, `Utxo`, `BuiltTransaction`, `WalletProvider`, `CoinSelectResult`, `MintRequest`, `BatchMintOptions`, `BatchMintPlan`, `PlannedTransaction`, `MintExecutionResult`, `WizardConnectClientLike`, `WizardConnectProviderOptions`, `WizardConnectSession`, `BchWalletAdapter`, `WalletSession`, `WalletEventName`, `WalletEventPayload`, `AdjustmentParams`, `AdjustmentDirection`
+`MintConfig`, `TokenSchema`, `NftOptions`, `TokenCapability`, `MintResult`, `Utxo`, `BuiltTransaction`, `WalletProvider`, `CoinSelectResult`, `MintRequest`, `BatchMintOptions`, `BatchMintPlan`, `PlannedTransaction`, `MintExecutionResult`, `WizardConnectClientLike`, `WizardConnectProviderOptions`, `WizardConnectSession`, `WizardAdapterClientLike`, `BchSourceOutput`, `WalletAdapter`, `BchWalletAdapter`, `WalletSession`, `WalletEventName`, `WalletEventPayload`, `WalletClientOptions`, `WalletManagerOptions`, `BchNetwork`, `AdjustmentParams`, `AdjustmentDirection`
 
 ## Key Generation
 
@@ -216,6 +268,7 @@ npm test        # run Vitest test suite
 - [Wallet Engine Architecture](docs/wallet/architecture.md)
 - [Wallet API Reference](docs/api/wallet.md)
 - [Wallet Engine Versioning](docs/versioning/wallet-engine.md)
+- [React UI Layer (`@mintcore/ui`)](docs/ui.md)
 - [Versioning Policy](docs/VERSIONING.md)
 - [Commit Conventions](docs/COMMITS.md)
 - [Contributing Guide](CONTRIBUTING.md)
