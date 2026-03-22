@@ -129,7 +129,8 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 - TypeScript type definitions for all public exports.
 - Vitest-based test suite.
 
-[Unreleased]: https://github.com/mintcoredev/MintCore/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/mintcoredev/MintCore/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/mintcoredev/MintCore/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mintcoredev/MintCore/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/mintcoredev/MintCore/compare/v0.1.0...v1.1.0
-[0.1.0]: https://github.com/mintcoredev/MintCore/releases/tag/v0.1.0
+[1.1.0]: https://github.com/mintcoredev/MintCore/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/mintcoredev/MintCore/releases/tag/v1.0.0
