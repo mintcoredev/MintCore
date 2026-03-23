@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { WizardAdapter } from "../wallet/adapters/WizardAdapter.js";
+ * import { WizardAdapter } from "@mintcore/ui";
  * ```
  */
 export {
