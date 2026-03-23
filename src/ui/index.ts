@@ -9,8 +9,7 @@
  *
  * ### Quick start
  * ```tsx
- * import { WizardAdapter } from "mintcore";
- * import { WalletProvider, ConnectWalletButton } from "@mintcore/ui";
+ * import { WizardAdapter, WalletProvider, ConnectWalletButton } from "@mintcore/ui";
  *
  * const adapters = [new WizardAdapter({ client })];
  *
@@ -24,22 +23,5 @@
  * ```
  */
 
-// ── Wallet adapter re-exports (from SDK) ──────────────────────────────────────
-export type { WalletAdapter } from "./wallet/WalletAdapter.js";
-export { WizardAdapter } from "./wallet/adapters/WizardAdapter.js";
-export type { WizardAdapterClientLike, BchSourceOutput } from "./wallet/adapters/WizardAdapter.js";
-
-// ── Context & Provider ────────────────────────────────────────────────────────
-export { WalletProvider, WalletContext } from "./wallet/WalletProvider.js";
-export type {
-  WalletContextValue,
-  WalletProviderProps,
-  WalletUIConnectionState,
-} from "./wallet/WalletContext.js";
-
-// ── Hook ──────────────────────────────────────────────────────────────────────
-export { useWallet } from "./wallet/useWallet.js";
-
-// ── Components ────────────────────────────────────────────────────────────────
-export { ConnectWalletButton } from "./components/ConnectWalletButton.js";
-export type { ConnectWalletButtonProps } from "./components/ConnectWalletButton.js";
+export * from "./wallet/index.js";
+export * from "./components/index.js";
