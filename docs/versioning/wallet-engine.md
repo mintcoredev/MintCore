@@ -50,7 +50,7 @@ any code that reads `WalletSession.topic` or `WalletSession.chainId`.
 
 ### Updating `WalletManager.connect()`
 
-**Before (v1.2.x):**
+**Before (v0.2.x):**
 
 ```typescript
 import { WalletManager, WalletType } from "mintcore";
@@ -58,7 +58,7 @@ import { WalletManager, WalletType } from "mintcore";
 const session = await manager.connect(signClient, wcSession, WalletType.Paytaca, "bch:bitcoincash");
 ```
 
-**After (v1.3.0):**
+**After (v0.3.0):**
 
 ```typescript
 import { WalletManager, WalletType } from "mintcore";
@@ -69,14 +69,14 @@ const session = await manager.connect(wizardClient, wizardSession, WalletType.Pa
 
 ### Updating `WalletSession` access
 
-**Before (v1.2.x):**
+**Before (v0.2.x):**
 
 ```typescript
 console.log(session.topic);   // WalletConnect topic
 console.log(session.chainId); // CAIP-2 chain ID
 ```
 
-**After (v1.3.0):**
+**After (v0.3.0):**
 
 ```typescript
 console.log(session.id);      // Wizard Connect session ID
@@ -85,7 +85,7 @@ console.log(session.id);      // Wizard Connect session ID
 
 ### Replacing `WalletConnectProvider` with `WizardConnectProvider`
 
-**Before (v1.2.x):**
+**Before (v0.2.x):**
 
 ```typescript
 import SignClient from "@walletconnect/sign-client";
@@ -95,7 +95,7 @@ const client = await SignClient.init({ projectId: "..." });
 const provider = new WalletConnectProvider({ client, topic: session.topic });
 ```
 
-**After (v1.3.0):**
+**After (v0.3.0):**
 
 ```typescript
 import { WizardConnectProvider } from "mintcore";
