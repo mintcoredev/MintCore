@@ -4,7 +4,7 @@ Introduced in **MintCore v1.3.0**.
 
 ## Why the Version Was Bumped
 
-MintCore v1.3.0 replaces the WalletConnect v2 engine with Wizard Connect — a BCH-native
+MintCore v0.3.0 replaces the WalletConnect v2 engine with Wizard Connect — a BCH-native
 wallet connection protocol. This removes all WalletConnect, EVM, and multi-chain
 abstractions and replaces them with a clean, BCH-first API.
 
