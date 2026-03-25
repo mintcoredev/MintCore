@@ -480,3 +480,86 @@ describe("createWalletRegistry", () => {
     expect(registry.size).toBe(0);
   });
 });
+
+// ─── WalletAdapter id field ───────────────────────────────────────────────────
+
+/**
+ * Helper that mirrors the adapter-lookup logic in WalletProvider.connect():
+ *   find by id first, then fall back to name.
+ */
+function findAdapter(
+  adapters: import("../src/wallet/adapters/WalletAdapter.js").WalletAdapter[],
+  key: string
+): import("../src/wallet/adapters/WalletAdapter.js").WalletAdapter | undefined {
+  return adapters.find((a) => a.id === key) ?? adapters.find((a) => a.name === key);
+}
+
+function makePlainAdapter(
+  overrides: Partial<import("../src/wallet/adapters/WalletAdapter.js").WalletAdapter> & { name: string }
+): import("../src/wallet/adapters/WalletAdapter.js").WalletAdapter {
+  return {
+    connect: vi.fn().mockResolvedValue(undefined),
+    disconnect: vi.fn().mockResolvedValue(undefined),
+    getAddress: vi.fn().mockResolvedValue(MAINNET_ADDRESS),
+    signMessage: vi.fn().mockResolvedValue(SIGNATURE_HEX),
+    signTransaction: vi.fn().mockResolvedValue(new Uint8Array()),
+    on: vi.fn(),
+    ...overrides,
+  };
+}
+
+describe("WalletAdapter optional id field", () => {
+  it("WalletAdapter interface accepts an optional id field", () => {
+    const adapter = makePlainAdapter({ id: "paytaca", name: "Paytaca" });
+    expect(adapter.id).toBe("paytaca");
+    expect(adapter.name).toBe("Paytaca");
+  });
+
+  it("adapter without id has id === undefined", () => {
+    const adapter = makePlainAdapter({ name: "Paytaca" });
+    expect(adapter.id).toBeUndefined();
+  });
+});
+
+describe("WalletProvider adapter lookup: id-first, name fallback", () => {
+  it("finds an adapter by id when id matches", () => {
+    const adapter = makePlainAdapter({ id: "paytaca", name: "Paytaca" });
+    expect(findAdapter([adapter], "paytaca")).toBe(adapter);
+  });
+
+  it("finds an adapter by name when id is not set", () => {
+    const adapter = makePlainAdapter({ name: "Paytaca" });
+    expect(findAdapter([adapter], "Paytaca")).toBe(adapter);
+  });
+
+  it("id match takes priority over a different adapter whose name matches the key", () => {
+    const byId = makePlainAdapter({ id: "paytaca", name: "PaytacaByIdMatch" });
+    const byName = makePlainAdapter({ name: "paytaca" });
+    // "paytaca" should resolve to byId (id match) not byName (name match)
+    expect(findAdapter([byName, byId], "paytaca")).toBe(byId);
+  });
+
+  it("falls back to name match when no id matches", () => {
+    const adapter = makePlainAdapter({ id: "paytaca", name: "Paytaca" });
+    // Searching by display name "Paytaca" — no adapter has id === "Paytaca",
+    // so it falls through to the name comparison.
+    expect(findAdapter([adapter], "Paytaca")).toBe(adapter);
+  });
+
+  it("returns undefined when neither id nor name matches", () => {
+    const adapter = makePlainAdapter({ id: "paytaca", name: "Paytaca" });
+    expect(findAdapter([adapter], "zapit")).toBeUndefined();
+  });
+
+  it("works across multiple adapters with mixed id presence", () => {
+    const paytaca = makePlainAdapter({ id: "paytaca", name: "Paytaca" });
+    const zapit = makePlainAdapter({ id: "zapit", name: "Zapit" });
+    const legacy = makePlainAdapter({ name: "LegacyWallet" });
+    const adapters = [paytaca, zapit, legacy];
+
+    expect(findAdapter(adapters, "paytaca")).toBe(paytaca);
+    expect(findAdapter(adapters, "zapit")).toBe(zapit);
+    expect(findAdapter(adapters, "LegacyWallet")).toBe(legacy);
+    expect(findAdapter(adapters, "unknown")).toBeUndefined();
+  });
+});

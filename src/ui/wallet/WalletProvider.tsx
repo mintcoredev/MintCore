@@ -87,7 +87,9 @@ export function WalletProvider({
 
   const connect = useCallback(
     async (adapterName: string): Promise<void> => {
-      const adapter = adapters.find((a) => a.name === adapterName);
+      const adapter =
+        adapters.find((a) => a.id === adapterName) ??
+        adapters.find((a) => a.name === adapterName);
       if (!adapter) {
         throw new Error(`WalletProvider: no adapter found for "${adapterName}"`);
       }
@@ -213,7 +215,7 @@ export function WalletProvider({
       // localStorage may not be available.
     }
 
-    if (lastWallet && adapters.some((a) => a.name === lastWallet)) {
+    if (lastWallet && adapters.some((a) => a.id === lastWallet || a.name === lastWallet)) {
       connect(lastWallet).catch((err: unknown) => {
         // Surface auto-reconnect failures via the error state so the UI can
         // prompt the user to reconnect manually.

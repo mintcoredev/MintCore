@@ -27,8 +27,17 @@
  */
 export interface WalletAdapter {
   /**
+   * Machine-readable identifier for this wallet (e.g. `"paytaca"`, `"zapit"`,
+   * `"cashonize"`).  When present, {@link WalletProvider} uses this field as
+   * the primary lookup key so that callers can write
+   * `connect("paytaca")` instead of relying on the display name.
+   */
+  readonly id?: string;
+
+  /**
    * Human-readable identifier for this wallet (e.g. `"WizardConnect"`).
-   * Used as the key in the wallet registry.
+   * Used as the key in the wallet registry and as a fallback when {@link id}
+   * is not set.
    */
   readonly name: string;
 
