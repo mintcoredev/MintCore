@@ -37,6 +37,10 @@ export {
   type BchSourceOutput,
 } from "./adapters/WizardAdapter.js";
 
+export { PaytacaAdapter } from "./adapters/PaytacaAdapter.js";
+export { ZapitAdapter } from "./adapters/ZapitAdapter.js";
+export { CashonizeAdapter } from "./adapters/CashonizeAdapter.js";
+
 export {
   WalletRegistry,
   createWalletRegistry,

@@ -32,6 +32,9 @@ export {
   WalletConnectionState,
   BCH_CHAIN_IDS,
   WizardAdapter,
+  PaytacaAdapter,
+  ZapitAdapter,
+  CashonizeAdapter,
   WalletRegistry,
   createWalletRegistry,
 } from "./wallet/index.js";
