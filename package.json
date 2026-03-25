@@ -1,6 +1,6 @@
 {
   "name": "mintcore",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "A minimal CashTokens minting library built on top of Libauth",
   "main": "dist/api/mintcore.js",
   "types": "dist/api/mintcore.d.ts",

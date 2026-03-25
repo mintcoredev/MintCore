@@ -1,7 +1,7 @@
 /**
  * MintCore Unified API
  *
- * Public surface for v0.1.0. Import from "mintcore" to access all public
+ * Public surface for v0.3.0. Import from "mintcore" to access all public
  * exports — minting, metadata, accounting, and rules.
  *
  * @example
