@@ -46,10 +46,10 @@ transactions to the network. Two built-in providers are included:
 - **ChronikProvider** — connects to a [Chronik](https://chronik.be.cash/) indexer
 - **ElectrumXProvider** — connects to an ElectrumX / Fulcrum server
 
-## Wallet Engine (v1.3.0 — Wizard Connect)
+## Wallet Engine (v0.3.0 — Wizard Connect)
 
 MintCore includes a Wizard Connect engine for Bitcoin Cash wallet integration, replacing
-the earlier WalletConnect v2 engine introduced in v1.2.0.
+the earlier WalletConnect v2 engine introduced in v0.2.0.
 
 - **BCH-native** — built exclusively for Bitcoin Cash; no EVM chain IDs, multi-chain
   abstractions, or WalletConnect session topics.
@@ -101,7 +101,7 @@ See [UI Layer](ui.md) for full details.
 
 - [Wallet Engine Architecture](wallet/architecture.md) — component responsibilities and engine-only constraints
 - [Wallet API Reference](api/wallet.md) — public API and type definitions
-- [Wallet Engine Versioning](versioning/wallet-engine.md) — migration notes for v1.3.0
+- [Wallet Engine Versioning](versioning/wallet-engine.md) — migration notes for v0.3.0
 - [UI Layer (`@mintcore/ui`)](ui.md) — React provider, hook, and components
 - [Future Modules](future-modules.md) — planned extensions and upcoming features
 - [Versioning Policy](VERSIONING.md) — how releases are versioned
