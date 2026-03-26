@@ -97,7 +97,7 @@ export class WizardAdapter implements WalletAdapter {
     [WalletType.Zapit]: "Zapit",
   };
 
-  private readonly client: WizardAdapterClientLike | null;
+  private readonly client: WizardAdapterClientLike;
   private cachedAddress: string | undefined;
   private connected = false;
 
@@ -111,6 +111,11 @@ export class WizardAdapter implements WalletAdapter {
     type?: WalletType;
     client: WizardAdapterClientLike | null;
   }) {
+    if (options.client === null || options.client === undefined) {
+      throw new MintCoreError(
+        "WizardAdapter: a valid client instance is required"
+      );
+    }
     this.walletType = options.type;
     this.name =
       options.type != null
@@ -129,12 +134,6 @@ export class WizardAdapter implements WalletAdapter {
    * signalling that the connection is active.
    */
   async connect(): Promise<void> {
-    if (!this.client) {
-      throw new MintCoreError(
-        `${this.name}: wallet is not available — install the browser extension and try again`
-      );
-    }
-
     let accounts: string[];
     try {
       accounts = await this.client.getAccounts();
@@ -166,7 +165,7 @@ export class WizardAdapter implements WalletAdapter {
     }
 
     try {
-      await this.client!.disconnect();
+      await this.client.disconnect();
     } catch {
       // Treat the session as terminated regardless.
     } finally {
@@ -188,7 +187,7 @@ export class WizardAdapter implements WalletAdapter {
 
     let accounts: string[];
     try {
-      accounts = await this.client!.getAccounts();
+      accounts = await this.client.getAccounts();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new MintCoreError(`WizardAdapter: getAddress failed — ${msg}`);
@@ -216,14 +215,14 @@ export class WizardAdapter implements WalletAdapter {
   async signMessage(message: string): Promise<string> {
     this.assertConnected();
 
-    if (typeof this.client!.signMessage !== "function") {
+    if (typeof this.client.signMessage !== "function") {
       throw new MintCoreError(
         "WizardAdapter: the connected client does not support signMessage"
       );
     }
 
     try {
-      return await this.client!.signMessage(message);
+      return await this.client.signMessage(message);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new MintCoreError(`WizardAdapter: signMessage failed — ${msg}`);
@@ -247,7 +246,7 @@ export class WizardAdapter implements WalletAdapter {
 
     let signedHex: string;
     try {
-      signedHex = await this.client!.signTransaction(txHex, []);
+      signedHex = await this.client.signTransaction(txHex, []);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new MintCoreError(`WizardAdapter: signTransaction failed — ${msg}`);
@@ -285,7 +284,7 @@ export class WizardAdapter implements WalletAdapter {
 
     let result: string;
     try {
-      result = await this.client!.signTransaction(txHex, serialisedOutputs);
+      result = await this.client.signTransaction(txHex, serialisedOutputs);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new MintCoreError(`WizardAdapter: signBchTransaction failed — ${msg}`);
@@ -310,7 +309,7 @@ export class WizardAdapter implements WalletAdapter {
   async broadcastTransaction(rawTx: Uint8Array): Promise<string> {
     this.assertConnected();
 
-    if (typeof this.client!.broadcastTransaction !== "function") {
+    if (typeof this.client.broadcastTransaction !== "function") {
       throw new MintCoreError(
         "WizardAdapter: the connected client does not support broadcastTransaction"
       );
@@ -319,7 +318,7 @@ export class WizardAdapter implements WalletAdapter {
     const txHex = toHex(rawTx);
 
     try {
-      return await this.client!.broadcastTransaction(txHex);
+      return await this.client.broadcastTransaction(txHex);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new MintCoreError(`WizardAdapter: broadcastTransaction failed — ${msg}`);
