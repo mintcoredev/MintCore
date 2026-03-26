@@ -41,13 +41,7 @@ export { PaytacaAdapter } from "./adapters/PaytacaAdapter.js";
 export { ZapitAdapter } from "./adapters/ZapitAdapter.js";
 export { CashonizeAdapter } from "./adapters/CashonizeAdapter.js";
 
-export { WizardConnectMobileAdapter } from "./adapters/WizardConnectMobileAdapter.js";
-export { PaytacaMobileAdapter } from "./adapters/PaytacaMobileAdapter.js";
-export { ZapitMobileAdapter } from "./adapters/ZapitMobileAdapter.js";
-export { CashonizeMobileAdapter } from "./adapters/CashonizeMobileAdapter.js";
-
 export {
   WalletRegistry,
   createWalletRegistry,
-  createAdaptiveWalletRegistry,
 } from "./registry.js";

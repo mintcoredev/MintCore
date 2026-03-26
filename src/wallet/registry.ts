@@ -1,10 +1,4 @@
 import type { WalletAdapter } from "./adapters/WalletAdapter.js";
-import { PaytacaAdapter } from "./adapters/PaytacaAdapter.js";
-import { ZapitAdapter } from "./adapters/ZapitAdapter.js";
-import { CashonizeAdapter } from "./adapters/CashonizeAdapter.js";
-import { PaytacaMobileAdapter } from "./adapters/PaytacaMobileAdapter.js";
-import { ZapitMobileAdapter } from "./adapters/ZapitMobileAdapter.js";
-import { CashonizeMobileAdapter } from "./adapters/CashonizeMobileAdapter.js";
 
 // ─── WalletRegistry ───────────────────────────────────────────────────────────
 
@@ -99,55 +93,4 @@ export function createWalletRegistry(adapters: WalletAdapter[]): WalletRegistry 
     registry.register(adapter);
   }
   return registry;
-}
-
-// ─── Adaptive factory helper ──────────────────────────────────────────────────
-
-/**
- * Creates a {@link WalletRegistry} that automatically selects the correct
- * transport for each supported BCH wallet at runtime:
- *
- * - **Browser-extension transport**: used when the wallet exposes its
- *   WizardConnect client on `window.<wallet>.wizardconnect` (desktop browsers
- *   with the extension installed).
- * - **Mobile transport**: used as the fallback when no `window.*` client is
- *   detected (mobile browsers, extension not installed).
- *
- * Both transports implement the same {@link WalletAdapter} interface, so the
- * UI does not need to change.
- *
- * The function is safe to call during SSR/server-side rendering — it checks
- * for `globalThis` before accessing `window.*` properties.
- *
- * @example
- * ```ts
- * import { createAdaptiveWalletRegistry } from "mintcore";
- *
- * const registry = createAdaptiveWalletRegistry();
- * // Pass registry to WalletProvider — done.
- * ```
- */
-export function createAdaptiveWalletRegistry(): WalletRegistry {
-  const paytacaClient =
-    typeof (globalThis as Record<string, unknown>).paytaca !== "undefined"
-      ? ((globalThis as Record<string, unknown>).paytaca as Record<string, unknown>)?.wizardconnect ?? null
-      : null;
-
-  const zapitClient =
-    typeof (globalThis as Record<string, unknown>).zapit !== "undefined"
-      ? ((globalThis as Record<string, unknown>).zapit as Record<string, unknown>)?.wizardconnect ?? null
-      : null;
-
-  const cashonizeClient =
-    typeof (globalThis as Record<string, unknown>).cashonize !== "undefined"
-      ? ((globalThis as Record<string, unknown>).cashonize as Record<string, unknown>)?.wizardconnect ?? null
-      : null;
-
-  const adapters: WalletAdapter[] = [
-    paytacaClient ? new PaytacaAdapter() : new PaytacaMobileAdapter(),
-    zapitClient ? new ZapitAdapter() : new ZapitMobileAdapter(),
-    cashonizeClient ? new CashonizeAdapter() : new CashonizeMobileAdapter(),
-  ];
-
-  return createWalletRegistry(adapters);
 }
