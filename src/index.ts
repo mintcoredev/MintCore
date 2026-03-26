@@ -35,8 +35,13 @@ export {
   PaytacaAdapter,
   ZapitAdapter,
   CashonizeAdapter,
+  WizardConnectMobileAdapter,
+  PaytacaMobileAdapter,
+  ZapitMobileAdapter,
+  CashonizeMobileAdapter,
   WalletRegistry,
   createWalletRegistry,
+  createAdaptiveWalletRegistry,
 } from "./wallet/index.js";
 export type {
   WalletClientOptions,
@@ -52,3 +57,22 @@ export type {
   WizardAdapterClientLike,
   BchSourceOutput,
 } from "./wallet/index.js";
+
+// ── WizardConnect mobile utilities ────────────────────────────────────────────
+export {
+  handleWizardConnectRedirect,
+  saveMobileSession,
+  loadMobileSession,
+  clearMobileSession,
+  saveEphemeralPrivKey,
+  loadEphemeralPrivKey,
+  clearEphemeralPrivKey,
+  decryptMobileSession,
+} from "./wizardconnect/session.js";
+export type {
+  WizardConnectEncryptedSession,
+  WizardConnectMobileSession,
+} from "./wizardconnect/session.js";
+
+// ── Crypto / encoding utilities ───────────────────────────────────────────────
+export { base64urlEncode, base64urlDecode } from "./utils/base64url.js";
