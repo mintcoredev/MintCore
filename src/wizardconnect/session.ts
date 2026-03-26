@@ -29,7 +29,7 @@ import { MintCoreError } from "../utils/errors.js";
 export interface WizardConnectEncryptedSession {
   /** Wallet's secp256k1 compressed public key as a lowercase hex string. */
   walletPublicKey: string;
-  /** AES-256-GCM initialisation vector as a base64url string (12 bytes). */
+  /** AES-256-GCM initialization vector as a base64url string (12 bytes). */
   iv: string;
   /** AES-256-GCM ciphertext (includes authentication tag) as base64url. */
   ciphertext: string;

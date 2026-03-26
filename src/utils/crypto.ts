@@ -66,7 +66,7 @@ export async function importAesKey(keyBytes: Uint8Array): Promise<CryptoKey> {
  * Encrypt `plaintext` with AES-256-GCM.
  *
  * @param key       - AES-GCM `CryptoKey` (256-bit).
- * @param iv        - 12-byte initialisation vector (must be unique per encryption).
+ * @param iv        - 12-byte initialization vector (must be unique per encryption).
  * @param plaintext - Bytes to encrypt.
  * @returns Ciphertext bytes (includes 16-byte GCM authentication tag).
  */
@@ -87,7 +87,7 @@ export async function aesGcmEncrypt(
  * Decrypt AES-256-GCM `ciphertext`.
  *
  * @param key        - AES-GCM `CryptoKey` (256-bit).
- * @param iv         - 12-byte initialisation vector used during encryption.
+ * @param iv         - 12-byte initialization vector used during encryption.
  * @param ciphertext - Encrypted bytes (includes 16-byte GCM authentication tag).
  * @returns Decrypted plaintext bytes.
  * @throws {MintCoreError} if decryption fails (wrong key, tampered ciphertext, etc.).
