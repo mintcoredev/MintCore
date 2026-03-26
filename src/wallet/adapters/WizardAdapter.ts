@@ -124,6 +124,24 @@ export class WizardAdapter implements WalletAdapter {
     this.client = options.client;
   }
 
+  // ─── Invariant check ──────────────────────────────────────────────────────
+
+  /**
+   * Asserts that the adapter's internal invariants hold.
+   *
+   * Call this before performing any operation to detect invalid internal state
+   * (e.g. a null client resulting from unsafe mutations).
+   *
+   * @throws {MintCoreError} if the client reference is null or undefined.
+   */
+  validate(): void {
+    if (this.client == null) {
+      throw new MintCoreError(
+        "WizardAdapter invariant violated: client is null"
+      );
+    }
+  }
+
   // ─── WalletAdapter implementation ─────────────────────────────────────────
 
   /**
