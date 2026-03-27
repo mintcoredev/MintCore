@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:security": "vitest run tests/security"
   },
   "keywords": [
     "bitcoin-cash",
