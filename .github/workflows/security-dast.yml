@@ -9,14 +9,21 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v3
-      - name: Start App
+      - uses: actions/checkout@v4
+
+      - name: Pull ZAP
+        run: docker pull ghcr.io/zaproxy/zaproxy:stable
+
+      - name: Run ZAP Baseline Scan
         run: |
-          npm install
-          npm run build
-          npm start &
-          sleep 10
-      - name: OWASP ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.7.0
+          docker run \
+            -v $(pwd):/zap/wrk \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t https://example.com -r zap_report.html
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          target: "http://localhost:3000"
+          name: zap-report
+          path: zap_report.html
