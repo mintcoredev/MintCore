@@ -30,7 +30,7 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.4.0] - 2026-03-28 — WizardConnect Removal
+## [0.1.4] - 2026-03-28 — WizardConnect Removal
 
 ### Changed
 
@@ -51,7 +51,7 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.3.0] - 2026-03-22 — Wizard Connect Engine (replaces WalletConnect v2, itself removed in v1.4.0)
+## [0.1.3] - 2026-03-22 — Wizard Connect Engine (replaces WalletConnect v2, itself removed in v0.1.4)
 
 ### Added
 
@@ -87,7 +87,7 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.2.0] - 2026-03-21 — WalletConnect v2 Engine
+## [0.1.2] - 2026-03-21 — WalletConnect v2 Engine
 
 ### Added
 
@@ -112,7 +112,7 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.1.0] - 2026-03-14 — Batch Minting Engine
+## [0.1.1] - 2026-03-14 — Batch Minting Engine
 
 ### Added
 
@@ -140,7 +140,7 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.0.0 Beta] - 2026-03-01
+## [0.1.0-beta] - 2026-03-01
 
 ### Added
 
@@ -150,9 +150,9 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 - TypeScript type definitions for all public exports.
 - Vitest-based test suite.
 
-[Unreleased]: https://github.com/mintcoredev/MintCore/compare/v1.4.0...HEAD
-[1.4.0]: https://github.com/mintcoredev/MintCore/compare/v1.3.0...v1.4.0
-[1.3.0]: https://github.com/mintcoredev/MintCore/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/mintcoredev/MintCore/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/mintcoredev/MintCore/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/mintcoredev/MintCore/releases/tag/v1.0.0
+[Unreleased]: https://github.com/mintcoredev/MintCore/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/mintcoredev/MintCore/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/mintcoredev/MintCore/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/mintcoredev/MintCore/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/mintcoredev/MintCore/compare/v0.1.0-beta...v0.1.1
+[0.1.0-beta]: https://github.com/mintcoredev/MintCore/releases/tag/v0.1.0-beta
