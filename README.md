@@ -2,7 +2,7 @@
 
 A CashTokens minting engine for Bitcoin Cash, built on top of [@bitauth/libauth](https://github.com/bitauth/libauth).
 
-MintCore handles the full lifecycle of creating and tracking CashTokens on BCH: building and signing genesis transactions, managing minting batons, estimating fees, enforcing mint rules, and maintaining an in-memory ledger of balances and supply. It is pure TypeScript with no UI, no wallet, and no network client bundled in.
+MintCore handles the full lifecycle of creating CashTokens on BCH: building and signing genesis transactions, managing minting batons, and estimating fees. It is pure TypeScript with no UI, no wallet integration, and no network client bundled in.
 
 ## What MintCore Does
 
@@ -99,72 +99,11 @@ NFT capabilities follow the CashTokens spec: `"none"` (immutable NFT), `"mutable
 |-------|------|-------------|
 | `network` | `"mainnet" \| "testnet" \| "regtest"` | BCH network |
 | `privateKey` | `string` | 32-byte private key as hex — used to derive the address and sign inputs |
-| `walletProvider` | `WalletProvider` | External signer (hardware wallet, browser extension, etc.) — alternative to `privateKey` |
 | `utxoProviderUrl` | `string` | Chronik node URL used to fetch UTXOs and broadcast transactions |
 | `electrumxProviderUrl` | `string` | ElectrumX / Fulcrum HTTP REST URL — fallback when Chronik is not configured |
 | `feeRate` | `number` | sat/byte fee rate (default: 1.0) |
 
-When both `privateKey` and `walletProvider` are set, `privateKey` takes precedence. When both provider URLs are set, Chronik (`utxoProviderUrl`) takes precedence.
-
-### External Wallet Provider
-
-Implement `WalletProvider` to plug in any signing back-end without exposing a raw private key:
-
-```ts
-import type { WalletProvider } from "mintcore";
-
-class MyHardwareWallet implements WalletProvider {
-  async getAddress(): Promise<string> { /* ... */ }
-  async signTransaction(
-    txHex: string,
-    sourceOutputs: ReadonlyArray<{ satoshis: bigint; lockingBytecode: Uint8Array }>
-  ): Promise<string> { /* ... */ }
-}
-```
-
-### Accounting
-
-`AccountingAPI` is an in-memory ledger that tracks token supply and per-address balances across mint, transfer, burn, and adjustment operations.
-
-```ts
-import { AccountingAPI } from "mintcore";
-
-const ledger = new AccountingAPI();
-
-ledger.mint("GOLD", "alice", 1000n);
-ledger.transfer("GOLD", "alice", "bob", 250n);
-ledger.burn("GOLD", "bob", 50n);
-
-ledger.getBalance("alice", "GOLD"); // 750n
-ledger.getSupply("GOLD");           // 950n
-ledger.getOwners("GOLD");           // ["alice", "bob"]
-ledger.getEvents();                 // full ordered event log
-```
-
-### Mint Rules
-
-Attach rules to `AccountingAPI` to enforce minting constraints. Rules are checked before any `mint` or `transfer` operation:
-
-```ts
-import { AccountingAPI, createMaxSupplyRule, createMintAuthorityRule } from "mintcore";
-
-const ledger = new AccountingAPI();
-
-ledger.addRule(createMaxSupplyRule("GOLD", 10_000n));
-ledger.addRule(createMintAuthorityRule("GOLD", ["treasury"]));
-```
-
-Available rule factories:
-
-| Factory | Effect |
-|---------|--------|
-| `createMaxSupplyRule(asset, max)` | Prevents minting beyond a hard supply cap |
-| `createMintAuthorityRule(asset, addresses)` | Restricts minting to an allowlist of addresses |
-| `createSoulboundRule(asset)` | Marks an asset as non-transferable |
-| `createCooldownRule(asset, ms)` | Enforces a minimum time between operations |
-| `createRoyaltyRule(asset, basisPoints, recipient)` | Defines a royalty percentage on transfers |
-| `createXpThresholdRule(asset, minXp)` | Requires a minimum XP balance to receive the asset |
-| `createQuestRewardRule(asset, questId, amount)` | Ties a reward amount to a specific quest |
+When both provider URLs are set, Chronik (`utxoProviderUrl`) takes precedence.
 
 ### Script Primitives
 

@@ -4,7 +4,6 @@ import {
   hash256,
   encodeLockingBytecodeP2pkh,
   lockingBytecodeToCashAddress,
-  decodeCashAddress,
   encodeTransactionBCH,
   encodeDataPush,
   generateSigningSerializationBCH,
@@ -45,23 +44,19 @@ export class TransactionBuilder {
   }
 
   async build(schema: TokenSchema): Promise<BuiltTransaction> {
-    if (!this.config.privateKey && !this.config.walletProvider) {
+    if (!this.config.privateKey) {
       throw new MintCoreError(
-        "No signing credentials configured. Provide `privateKey` or `walletProvider` in MintConfig."
+        "No signing credentials configured. Provide `privateKey` in MintConfig."
       );
     }
 
-    const lockingBytecode = await this.getLockingBytecode();
+    const lockingBytecode = this.deriveLockingBytecode();
 
     if (!this.hasProvider) {
       return this.buildOfflineTransaction(schema, lockingBytecode);
     }
 
-    if (this.config.walletProvider && !this.config.privateKey) {
-      return this.buildWalletFundedTransaction(schema, lockingBytecode);
-    }
-
-    const privKeyBin = fromHex(this.config.privateKey!);
+    const privKeyBin = fromHex(this.config.privateKey);
     const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
     if (typeof pubKey === "string") {
       throw new MintCoreError(`Invalid private key: ${pubKey}`);
@@ -178,42 +173,6 @@ export class TransactionBuilder {
     return { hex, rawHex: hex, txid: toHex(txid), fee };
   }
 
-  /**
-   * Build a funded transaction and have the configured wallet provider sign it.
-   *
-   * The unsigned transaction is serialised, handed to the wallet via
-   * `walletProvider.signTransaction()`, and the signed result is returned.
-   */
-  private async buildWalletFundedTransaction(
-    schema: TokenSchema,
-    lockingBytecode: Uint8Array
-  ): Promise<BuiltTransaction> {
-    const { tx, selected, fee } = await this.prepareFundedTransaction(schema, lockingBytecode);
-
-    const unsignedHex = toHex(encodeTransactionBCH(tx));
-
-    const sourceOutputs = selected.map((utxo) => ({
-      satoshis: BigInt(utxo.satoshis),
-      lockingBytecode,
-    }));
-
-    const signedHex = await this.config.walletProvider!.signTransaction(
-      unsignedHex,
-      sourceOutputs
-    );
-
-    // Derive the txid from the signed transaction bytes
-    const signedBytes = fromHex(signedHex);
-    const txid = toHex(hash256(signedBytes).reverse());
-    return { hex: signedHex, rawHex: signedHex, txid, fee };
-  }
-
-  /**
-   * Shared helper: fetch UTXOs, select coins, and build the unsigned funded
-   * transaction structure (inputs + outputs). Used by both
-   * `buildFundedTransaction` (private-key signing) and
-   * `buildWalletFundedTransaction` (wallet-provider signing).
-   */
   private async prepareFundedTransaction(
     schema: TokenSchema,
     lockingBytecode: Uint8Array
@@ -299,34 +258,6 @@ export class TransactionBuilder {
    * Return the P2PKH locking bytecode, preferring the wallet provider address
    * when no private key is configured.
    */
-  private async getLockingBytecode(): Promise<Uint8Array> {
-    if (!this.config.privateKey && this.config.walletProvider) {
-      const address = await this.config.walletProvider.getAddress();
-      const decoded = decodeCashAddress(address);
-      if (typeof decoded === "string") {
-        throw new MintCoreError(`Failed to decode wallet address: ${decoded}`);
-      }
-
-      // Validate network prefix matches configured network
-      const expectedPrefix = CashAddressNetworkPrefix[this.config.network];
-      if (decoded.prefix !== expectedPrefix) {
-        throw new MintCoreError(
-          `Wallet address network mismatch: expected prefix "${expectedPrefix}", got "${decoded.prefix}"`
-        );
-      }
-
-      // Validate address type is P2PKH (standard or token-aware variant)
-      if (decoded.type !== "p2pkh" && decoded.type !== "p2pkhWithTokens") {
-        throw new MintCoreError(
-          `Wallet address must be a P2PKH address, got type "${decoded.type}"`
-        );
-      }
-
-      return encodeLockingBytecodeP2pkh(decoded.payload);
-    }
-    return this.deriveLockingBytecode();
-  }
-
   /** Derive the CashAddress for the configured network and private key. */
   private deriveAddressFromConfig(): string {
     if (!this.config.privateKey) {
@@ -355,10 +286,7 @@ export class TransactionBuilder {
         "No UTXO provider configured. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
       );
     }
-    const address = this.config.walletProvider && !this.config.privateKey
-      ? await this.config.walletProvider.getAddress()
-      : this.deriveAddressFromConfig();
-    return providerFetchUtxos(this.config, address);
+    return providerFetchUtxos(this.config, this.deriveAddressFromConfig());
   }
 
   /** Encode the NFT commitment string to bytes (hex or UTF-8). */

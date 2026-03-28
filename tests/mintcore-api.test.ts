@@ -39,19 +39,6 @@ import {
   VERSION,
   generateKey,
   deriveAddress,
-  // ── accounting ──────────────────────────────────────────────────────────────
-  AccountingAPI,
-  AccountingError,
-  ValidationError,
-  AdjustmentService,
-  // ── rule factories ──────────────────────────────────────────────────────────
-  createMaxSupplyRule,
-  createMintAuthorityRule,
-  createSoulboundRule,
-  createCooldownRule,
-  createRoyaltyRule,
-  createXpThresholdRule,
-  createQuestRewardRule,
 } from "../api/mintcore.js";
 
 // ─── Constructors / callable exports ─────────────────────────────────────────
@@ -81,26 +68,6 @@ describe("api/mintcore – constructor exports", () => {
     expect(typeof MintCoreError).toBe("function");
     const err = new MintCoreError("test");
     expect(err).toBeInstanceOf(Error);
-  });
-
-  it("AccountingAPI is a constructor", () => {
-    expect(typeof AccountingAPI).toBe("function");
-  });
-
-  it("AccountingError is a constructor (extends Error)", () => {
-    expect(typeof AccountingError).toBe("function");
-    const err = new AccountingError("test");
-    expect(err).toBeInstanceOf(Error);
-  });
-
-  it("ValidationError is a constructor (extends Error)", () => {
-    expect(typeof ValidationError).toBe("function");
-    const err = new ValidationError("test");
-    expect(err).toBeInstanceOf(Error);
-  });
-
-  it("AdjustmentService is a constructor", () => {
-    expect(typeof AdjustmentService).toBe("function");
   });
 });
 
@@ -166,34 +133,6 @@ describe("api/mintcore – function exports", () => {
   it("deriveAddress is a function", () => {
     expect(typeof deriveAddress).toBe("function");
   });
-
-  it("createMaxSupplyRule is a function", () => {
-    expect(typeof createMaxSupplyRule).toBe("function");
-  });
-
-  it("createMintAuthorityRule is a function", () => {
-    expect(typeof createMintAuthorityRule).toBe("function");
-  });
-
-  it("createSoulboundRule is a function", () => {
-    expect(typeof createSoulboundRule).toBe("function");
-  });
-
-  it("createCooldownRule is a function", () => {
-    expect(typeof createCooldownRule).toBe("function");
-  });
-
-  it("createRoyaltyRule is a function", () => {
-    expect(typeof createRoyaltyRule).toBe("function");
-  });
-
-  it("createXpThresholdRule is a function", () => {
-    expect(typeof createXpThresholdRule).toBe("function");
-  });
-
-  it("createQuestRewardRule is a function", () => {
-    expect(typeof createQuestRewardRule).toBe("function");
-  });
 });
 
 // ─── Constant exports ─────────────────────────────────────────────────────────
@@ -231,31 +170,6 @@ describe("api/mintcore – constant exports", () => {
 // ─── Smoke-tests: critical paths through the unified API ─────────────────────
 
 describe("api/mintcore – smoke tests", () => {
-  it("createMaxSupplyRule returns a Rule object with the correct type", () => {
-    const rule = createMaxSupplyRule("token-A", 1_000_000n);
-    expect(rule).toBeDefined();
-    expect(typeof rule.type).toBe("string");
-  });
-
-  it("createSoulboundRule returns a Rule object", () => {
-    const rule = createSoulboundRule("token-B");
-    expect(rule).toBeDefined();
-  });
-
-  it("AccountingAPI can be instantiated", () => {
-    const api = new AccountingAPI();
-    expect(api).toBeDefined();
-    expect(typeof api.mint).toBe("function");
-    expect(typeof api.transfer).toBe("function");
-    expect(typeof api.burn).toBe("function");
-  });
-
-  it("AdjustmentService can be instantiated", () => {
-    const svc = new AdjustmentService();
-    expect(svc).toBeDefined();
-    expect(typeof svc.adjust).toBe("function");
-  });
-
   it("LibauthAdapter builds a transaction via the unified API", async () => {
     const adapter = new LibauthAdapter({
       network: "regtest",

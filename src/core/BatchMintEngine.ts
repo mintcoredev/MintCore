@@ -261,9 +261,9 @@ export class BatchMintEngine {
     plan: BatchMintPlan,
     options?: BatchMintOptions
   ): Promise<MintExecutionResult> {
-    if (!this.config.privateKey && !this.config.walletProvider) {
+    if (!this.config.privateKey) {
       throw new MintCoreError(
-        "No signing credentials configured. Provide `privateKey` or `walletProvider` in MintConfig."
+        "No signing credentials configured. Provide `privateKey` in MintConfig."
       );
     }
     if (!this.hasProvider) {
@@ -332,7 +332,7 @@ export class BatchMintEngine {
   private async executeOnePlannedTx(
     plannedTx: PlannedTransaction
   ): Promise<{ txid: string; fee: number }> {
-    const lockingBytecode = await this.getLockingBytecode();
+    const lockingBytecode = this.getLockingBytecode();
     const address = await this.getFundingAddress();
     const freshUtxos = await providerFetchUtxos(this.config, address);
 
@@ -402,9 +402,7 @@ export class BatchMintEngine {
 
     const tx: RawTx = { version: 2, inputs, outputs, locktime: 0 };
 
-    const signedHex = this.config.privateKey
-      ? await this.signWithPrivateKey(tx, sortedInputs, lockingBytecode)
-      : await this.signWithWallet(tx, sortedInputs, lockingBytecode);
+    const signedHex = await this.signWithPrivateKey(tx, sortedInputs, lockingBytecode);
 
     const txid = await providerBroadcast(this.config, signedHex);
 
@@ -533,23 +531,6 @@ export class BatchMintEngine {
     return toHex(encodeTransactionBCH(tx));
   }
 
-  /** Hand the unsigned transaction to the configured wallet provider for signing. */
-  private async signWithWallet(
-    tx: RawTx,
-    selected: Utxo[],
-    lockingBytecode: Uint8Array
-  ): Promise<string> {
-    const unsignedHex = toHex(encodeTransactionBCH(tx));
-    const sourceOutputs = selected.map((u) => ({
-      satoshis: BigInt(u.satoshis),
-      lockingBytecode,
-    }));
-    return this.config.walletProvider!.signTransaction(
-      unsignedHex,
-      sourceOutputs
-    );
-  }
-
   /** Build one token output for a single {@link MintRequest}. */
   private buildMintOutput(
     req: MintRequest,
@@ -614,30 +595,8 @@ export class BatchMintEngine {
     return encodeLockingBytecodeP2pkh(decoded.payload);
   }
 
-  /** Return the P2PKH locking bytecode for the configured signer. */
-  private async getLockingBytecode(): Promise<Uint8Array> {
-    if (!this.config.privateKey && this.config.walletProvider) {
-      const address = await this.config.walletProvider.getAddress();
-      const decoded = decodeCashAddress(address);
-      if (typeof decoded === "string") {
-        throw new MintCoreError(
-          `Failed to decode wallet address: ${decoded}`
-        );
-      }
-      const expectedPrefix =
-        CashAddressNetworkPrefix[this.config.network];
-      if (decoded.prefix !== expectedPrefix) {
-        throw new MintCoreError(
-          `Wallet address network mismatch: expected prefix "${expectedPrefix}", got "${decoded.prefix}"`
-        );
-      }
-      if (decoded.type !== "p2pkh" && decoded.type !== "p2pkhWithTokens") {
-        throw new MintCoreError(
-          `Wallet address must be a P2PKH address, got type "${decoded.type}"`
-        );
-      }
-      return encodeLockingBytecodeP2pkh(decoded.payload);
-    }
+  /** Return the P2PKH locking bytecode for the configured private key. */
+  private getLockingBytecode(): Uint8Array {
     const privKeyBin = fromHex(this.config.privateKey!);
     const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
     if (typeof pubKey === "string") {
@@ -647,14 +606,11 @@ export class BatchMintEngine {
     return encodeLockingBytecodeP2pkh(pkh);
   }
 
-  /** Derive the CashAddress for the configured network and signer. */
+  /** Derive the CashAddress for the configured network and private key. */
   private async getFundingAddress(): Promise<string> {
-    if (this.config.walletProvider && !this.config.privateKey) {
-      return this.config.walletProvider.getAddress();
-    }
     if (!this.config.privateKey) {
       throw new MintCoreError(
-        "Cannot derive funding address: no private key or wallet provider configured."
+        "Cannot derive funding address: no private key configured."
       );
     }
     const privKeyBin = fromHex(this.config.privateKey);

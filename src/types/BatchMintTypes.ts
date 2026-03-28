@@ -33,7 +33,7 @@ export interface MintRequest {
   commitment?: string;
   /**
    * CashAddress of the token recipient. Defaults to the funding address
-   * derived from `MintConfig.privateKey` (or `walletProvider`) when omitted.
+   * derived from `MintConfig.privateKey` when omitted.
    */
   recipientAddress?: string;
 }
