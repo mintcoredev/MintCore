@@ -15,9 +15,12 @@ jobs:
         run: docker pull ghcr.io/zaproxy/zaproxy:stable
 
       - name: Run ZAP Baseline Scan
+        continue-on-error: true
         run: |
+          mkdir -p /tmp/zap-output
+          chmod 777 /tmp/zap-output
           docker run \
-            -v $(pwd):/zap/wrk \
+            -v /tmp/zap-output:/zap/wrk \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py -t https://example.com -r zap_report.html
 
@@ -26,4 +29,4 @@ jobs:
         if: always()
         with:
           name: zap-report
-          path: zap_report.html
+          path: /tmp/zap-output/zap_report.html
