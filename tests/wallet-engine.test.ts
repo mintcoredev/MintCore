@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { WalletClient, type WizardConnectClientLike, type WizardConnectSession } from "../src/wallet/WalletClient.js";
+import { WalletClient, type BchWalletClientLike, type BchWalletSession } from "../src/wallet/WalletClient.js";
 import { WalletManager } from "../src/wallet/WalletManager.js";
 import {
   WalletType,
@@ -19,7 +19,7 @@ function makeClient(overrides?: {
   getAccountsImpl?: () => Promise<string[]>;
   signTransactionImpl?: (txHex: string, outputs: Array<{ satoshis: string; lockingBytecode: string }>) => Promise<string>;
   disconnectImpl?: () => Promise<void>;
-}): WizardConnectClientLike {
+}): BchWalletClientLike {
   return {
     getAccounts: vi.fn().mockImplementation(
       overrides?.getAccountsImpl ?? (async () => [MAINNET_ADDRESS])
@@ -33,7 +33,7 @@ function makeClient(overrides?: {
   };
 }
 
-function makeSession(overrides?: Partial<WizardConnectSession>): WizardConnectSession {
+function makeSession(overrides?: Partial<BchWalletSession>): BchWalletSession {
   return {
     id: TEST_SESSION_ID,
     expiry: Date.now() + 86_400_000,
@@ -76,7 +76,7 @@ describe("WalletClient constructor", () => {
     expect(
       () =>
         new WalletClient({
-          client: null as unknown as WizardConnectClientLike,
+          client: null as unknown as BchWalletClientLike,
           session: makeSession(),
           walletType: WalletType.Paytaca,
         })
@@ -307,8 +307,8 @@ describe("WalletClient.disconnect", () => {
 // ─── WalletManager ────────────────────────────────────────────────────────────
 
 describe("WalletManager", () => {
-  let client: WizardConnectClientLike;
-  let session: WizardConnectSession;
+  let client: BchWalletClientLike;
+  let session: BchWalletSession;
   let manager: WalletManager;
 
   beforeEach(() => {

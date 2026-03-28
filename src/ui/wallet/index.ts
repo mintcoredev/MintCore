@@ -13,5 +13,5 @@ export type {
 export { useWallet } from "./useWallet.js";
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
-export { WizardAdapter } from "./adapters/WizardAdapter.js";
-export type { WizardAdapterClientLike, BchSourceOutput } from "./adapters/WizardAdapter.js";
+export { BaseWalletAdapter } from "./adapters/BaseWalletAdapter.js";
+export type { WalletAdapterClientLike, BchSourceOutput } from "./adapters/BaseWalletAdapter.js";

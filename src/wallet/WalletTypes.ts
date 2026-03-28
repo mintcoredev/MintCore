@@ -1,5 +1,5 @@
 /**
- * Supported BCH wallet applications that can be connected via Wizard Connect.
+ * Supported BCH wallet applications.
  */
 export enum WalletType {
   Paytaca = "paytaca",

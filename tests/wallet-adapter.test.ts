@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { WizardAdapter, type WizardAdapterClientLike } from "../src/wallet/adapters/WizardAdapter.js";
+import { BaseWalletAdapter, type WalletAdapterClientLike } from "../src/wallet/adapters/BaseWalletAdapter.js";
 import { WalletRegistry, createWalletRegistry } from "../src/wallet/registry.js";
 import { MintCoreError } from "../src/utils/errors.js";
 import { fromHex, toHex } from "../src/utils/hex.js";
@@ -22,7 +22,7 @@ function makeClient(overrides?: {
   signMessageImpl?: (message: string) => Promise<string>;
   broadcastTransactionImpl?: (txHex: string) => Promise<string>;
   disconnectImpl?: () => Promise<void>;
-}): WizardAdapterClientLike {
+}): WalletAdapterClientLike {
   return {
     getAccounts: vi.fn().mockImplementation(
       overrides?.getAccountsImpl ?? (async () => [MAINNET_ADDRESS])
@@ -42,16 +42,16 @@ function makeClient(overrides?: {
   };
 }
 
-function makeAdapter(client = makeClient()): WizardAdapter {
-  return new WizardAdapter({ client });
+function makeAdapter(client = makeClient()): BaseWalletAdapter {
+  return new BaseWalletAdapter({ client });
 }
 
 // ─── WalletAdapter interface compliance ───────────────────────────────────────
 
-describe("WizardAdapter satisfies WalletAdapter interface", () => {
-  it("has a 'name' property of 'WizardConnect'", () => {
+describe("BaseWalletAdapter satisfies WalletAdapter interface", () => {
+  it("has a 'name' property of 'BaseWalletAdapter'", () => {
     const adapter = makeAdapter();
-    expect(adapter.name).toBe("WizardConnect");
+    expect(adapter.name).toBe("BaseWalletAdapter");
   });
 
   it("exposes connect, disconnect, getAddress, signMessage, signTransaction, on", () => {
@@ -77,10 +77,10 @@ describe("WizardAdapter satisfies WalletAdapter interface", () => {
 
 // ─── constructor ──────────────────────────────────────────────────────────────
 
-describe("WizardAdapter constructor", () => {
+describe("BaseWalletAdapter constructor", () => {
   it("throws when client is null", () => {
     expect(
-      () => new WizardAdapter({ client: null as unknown as WizardAdapterClientLike })
+      () => new BaseWalletAdapter({ client: null as unknown as WalletAdapterClientLike })
     ).toThrow(MintCoreError);
   });
 
@@ -91,7 +91,7 @@ describe("WizardAdapter constructor", () => {
 
 // ─── connect ──────────────────────────────────────────────────────────────────
 
-describe("WizardAdapter.connect", () => {
+describe("BaseWalletAdapter.connect", () => {
   it("calls getAccounts and resolves without throwing", async () => {
     const client = makeClient();
     const adapter = makeAdapter(client);
@@ -137,7 +137,7 @@ describe("WizardAdapter.connect", () => {
 
 // ─── disconnect ───────────────────────────────────────────────────────────────
 
-describe("WizardAdapter.disconnect", () => {
+describe("BaseWalletAdapter.disconnect", () => {
   it("calls client.disconnect", async () => {
     const client = makeClient();
     const adapter = makeAdapter(client);
@@ -177,7 +177,7 @@ describe("WizardAdapter.disconnect", () => {
 
 // ─── getAddress ───────────────────────────────────────────────────────────────
 
-describe("WizardAdapter.getAddress", () => {
+describe("BaseWalletAdapter.getAddress", () => {
   it("throws when not connected", async () => {
     const adapter = makeAdapter();
     await expect(adapter.getAddress()).rejects.toThrow(MintCoreError);
@@ -201,7 +201,7 @@ describe("WizardAdapter.getAddress", () => {
 
 // ─── signMessage ──────────────────────────────────────────────────────────────
 
-describe("WizardAdapter.signMessage", () => {
+describe("BaseWalletAdapter.signMessage", () => {
   it("throws when not connected", async () => {
     const adapter = makeAdapter();
     await expect(adapter.signMessage("hello")).rejects.toThrow(MintCoreError);
@@ -221,8 +221,8 @@ describe("WizardAdapter.signMessage", () => {
   it("throws MintCoreError when the client does not implement signMessage", async () => {
     const client = makeClient();
     // Remove signMessage to simulate a client that doesn't support it
-    const clientWithout = { ...client, signMessage: undefined } as unknown as WizardAdapterClientLike;
-    const adapter = new WizardAdapter({ client: clientWithout });
+    const clientWithout = { ...client, signMessage: undefined } as unknown as WalletAdapterClientLike;
+    const adapter = new BaseWalletAdapter({ client: clientWithout });
     await adapter.connect();
     await expect(adapter.signMessage("hello")).rejects.toThrow(MintCoreError);
     await expect(adapter.signMessage("hello")).rejects.toThrow(/signMessage/i);
@@ -242,7 +242,7 @@ describe("WizardAdapter.signMessage", () => {
 
 // ─── signTransaction (generic Uint8Array interface) ───────────────────────────
 
-describe("WizardAdapter.signTransaction", () => {
+describe("BaseWalletAdapter.signTransaction", () => {
   it("throws when not connected", async () => {
     const adapter = makeAdapter();
     await expect(adapter.signTransaction(UNSIGNED_TX_BYTES)).rejects.toThrow(
@@ -287,7 +287,7 @@ describe("WizardAdapter.signTransaction", () => {
 
 // ─── signBchTransaction (BCH-specific with sourceOutputs) ────────────────────
 
-describe("WizardAdapter.signBchTransaction", () => {
+describe("BaseWalletAdapter.signBchTransaction", () => {
   const SOURCE_OUTPUTS = [
     {
       satoshis: 100_000n,
@@ -337,7 +337,7 @@ describe("WizardAdapter.signBchTransaction", () => {
 
 // ─── broadcastTransaction ─────────────────────────────────────────────────────
 
-describe("WizardAdapter.broadcastTransaction", () => {
+describe("BaseWalletAdapter.broadcastTransaction", () => {
   it("throws when not connected", async () => {
     const adapter = makeAdapter();
     await expect(
@@ -363,8 +363,8 @@ describe("WizardAdapter.broadcastTransaction", () => {
     const clientWithout = {
       ...client,
       broadcastTransaction: undefined,
-    } as unknown as WizardAdapterClientLike;
-    const adapter = new WizardAdapter({ client: clientWithout });
+    } as unknown as WalletAdapterClientLike;
+    const adapter = new BaseWalletAdapter({ client: clientWithout });
     await adapter.connect();
     await expect(
       adapter.broadcastTransaction(SIGNED_TX_BYTES)
@@ -377,7 +377,7 @@ describe("WizardAdapter.broadcastTransaction", () => {
 
 // ─── Event system ─────────────────────────────────────────────────────────────
 
-describe("WizardAdapter event system", () => {
+describe("BaseWalletAdapter event system", () => {
   it("on() registers a listener; off() removes it", async () => {
     const adapter = makeAdapter();
     const handler = vi.fn();
@@ -414,7 +414,7 @@ describe("WalletRegistry", () => {
     const adapter = makeAdapter();
     const registry = new WalletRegistry();
     registry.register(adapter);
-    expect(registry.get("WizardConnect")).toBe(adapter);
+    expect(registry.get("BaseWalletAdapter")).toBe(adapter);
   });
 
   it("getAll() returns all registered adapters", () => {
@@ -437,12 +437,12 @@ describe("WalletRegistry", () => {
 
   it("getNames() returns adapter names", () => {
     const registry = createWalletRegistry([makeAdapter()]);
-    expect(registry.getNames()).toContain("WizardConnect");
+    expect(registry.getNames()).toContain("BaseWalletAdapter");
   });
 
   it("has() returns true for registered adapter", () => {
     const registry = createWalletRegistry([makeAdapter()]);
-    expect(registry.has("WizardConnect")).toBe(true);
+    expect(registry.has("BaseWalletAdapter")).toBe(true);
     expect(registry.has("NonExistent")).toBe(false);
   });
 
@@ -453,12 +453,12 @@ describe("WalletRegistry", () => {
 
   it("duplicate name replaces the previous adapter", () => {
     const a1 = makeAdapter();
-    const a2 = new WizardAdapter({ client: makeClient() });
+    const a2 = new BaseWalletAdapter({ client: makeClient() });
     const registry = new WalletRegistry();
     registry.register(a1);
     registry.register(a2);
     expect(registry.size).toBe(1);
-    expect(registry.get("WizardConnect")).toBe(a2);
+    expect(registry.get("BaseWalletAdapter")).toBe(a2);
   });
 
   it("get() returns undefined for unknown adapter", () => {
@@ -472,7 +472,7 @@ describe("WalletRegistry", () => {
 describe("createWalletRegistry", () => {
   it("creates a registry with the given adapters", () => {
     const registry = createWalletRegistry([makeAdapter()]);
-    expect(registry.has("WizardConnect")).toBe(true);
+    expect(registry.has("BaseWalletAdapter")).toBe(true);
   });
 
   it("returns an empty registry when no adapters given", () => {

@@ -6,7 +6,7 @@ A minimal [CashTokens](https://cashtokens.org/) minting library for Bitcoin Cash
 
 - Mint fungible tokens (FT) and non-fungible tokens (NFT) on BCH
 - **Batch minting** — plan and execute large-scale mint operations across multiple optimised transactions using `BatchMintEngine`
-- **Wizard Connect** — connect BCH wallets (Paytaca, Cashonize, Zapit) without exposing a private key
+- **BCH Wallet Engine** — connect BCH wallets (Paytaca, Cashonize, Zapit) without exposing a private key
 - **On-chain accounting** — in-memory ledger with `AccountingAPI`: mint, transfer, burn, reward, fee collection, and balance queries
 - Offline transaction building (no network required for genesis transactions)
 - UTXO-funded transaction building via [Chronik](https://chronik.be.cash/) or ElectrumX / Fulcrum
@@ -114,21 +114,22 @@ const nftResult = await mintNFT(
 |--------|-------------|
 | `ChronikProvider` | Fetch UTXOs and broadcast via a Chronik instance |
 | `ElectrumXProvider` | Fetch UTXOs and broadcast via ElectrumX / Fulcrum |
-| `WizardConnectProvider` | Sign transactions via a Wizard Connect session |
 
 ### Wallet Engine
 
 | Export | Description |
 |--------|-------------|
 | `WalletManager` | High-level lifecycle orchestrator; manages connect/disconnect/sign |
-| `WalletClient` | Low-level Wizard Connect adapter |
-| `WizardAdapter` | `WalletAdapter` implementation for Wizard Connect |
+| `WalletClient` | Low-level BCH wallet adapter |
+| `BaseWalletAdapter` | Base `WalletAdapter` implementation for BCH wallets |
+| `PaytacaAdapter` | Adapter for the Paytaca browser-extension wallet |
+| `CashonizeAdapter` | Adapter for the Cashonize browser-extension wallet |
+| `ZapitAdapter` | Adapter for the Zapit browser-extension wallet |
 | `WalletRegistry` | Registry of available wallet adapters |
 | `createWalletRegistry` | Factory: creates a `WalletRegistry` pre-populated with adapters |
 | `WalletType` | Enum of supported BCH wallet applications (Paytaca, Cashonize, Zapit) |
 | `WalletConnectionState` | Enum of connection lifecycle states |
 | `BCH_CHAIN_IDS` | CAIP-2 chain identifiers for mainnet / testnet / regtest |
-| `WizardConnectProvider` | `WalletProvider` adapter for Wizard Connect |
 | `BchWalletAdapter` | Modular interface for adding BCH wallet adapters |
 
 ### Accounting
@@ -161,15 +162,15 @@ npm install mintcore @mintcore/ui
 | `WalletProvider` | React context provider; manages wallet state and exposes actions to children |
 | `useWallet` | Primary React hook; returns the current wallet state and action functions |
 | `ConnectWalletButton` | Self-contained connect/disconnect button component |
-| `WizardAdapter` | Re-export of the SDK `WizardAdapter` (for convenience) |
+| `BaseWalletAdapter` | Re-export of the SDK `BaseWalletAdapter` (for convenience) |
 
 #### Quick start
 
 ```tsx
-import { WizardAdapter, createWalletRegistry } from "mintcore";
+import { PaytacaAdapter, createWalletRegistry } from "mintcore";
 import { WalletProvider, ConnectWalletButton } from "@mintcore/ui";
 
-const adapters = [new WizardAdapter({ client: wizardClient })];
+const adapters = [new PaytacaAdapter()];
 
 function App() {
   return (
@@ -190,7 +191,7 @@ function MyComponent() {
 
   return isConnected
     ? <button onClick={disconnect}>Disconnect {address}</button>
-    : <button onClick={() => connect("WizardConnect")}>Connect</button>;
+    : <button onClick={() => connect("Paytaca")}>Connect</button>;
 }
 ```
 
@@ -216,7 +217,7 @@ function MyComponent() {
 
 ### Types
 
-`MintConfig`, `TokenSchema`, `NftOptions`, `TokenCapability`, `MintResult`, `Utxo`, `BuiltTransaction`, `WalletProvider`, `CoinSelectResult`, `MintRequest`, `BatchMintOptions`, `BatchMintPlan`, `PlannedTransaction`, `MintExecutionResult`, `WizardConnectClientLike`, `WizardConnectProviderOptions`, `WizardConnectSession`, `WizardAdapterClientLike`, `BchSourceOutput`, `WalletAdapter`, `BchWalletAdapter`, `WalletSession`, `WalletEventName`, `WalletEventPayload`, `WalletClientOptions`, `WalletManagerOptions`, `BchNetwork`, `AdjustmentParams`, `AdjustmentDirection`
+`MintConfig`, `TokenSchema`, `NftOptions`, `TokenCapability`, `MintResult`, `Utxo`, `BuiltTransaction`, `WalletProvider`, `CoinSelectResult`, `MintRequest`, `BatchMintOptions`, `BatchMintPlan`, `PlannedTransaction`, `MintExecutionResult`, `BchWalletClientLike`, `BchWalletSession`, `WalletAdapterClientLike`, `BchSourceOutput`, `WalletAdapter`, `BchWalletAdapter`, `WalletSession`, `WalletEventName`, `WalletEventPayload`, `WalletClientOptions`, `WalletManagerOptions`, `BchNetwork`, `AdjustmentParams`, `AdjustmentDirection`
 
 ## Key Generation
 

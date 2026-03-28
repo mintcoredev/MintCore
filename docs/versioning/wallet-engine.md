@@ -1,111 +1,97 @@
 # Wallet Engine — Versioning Notes
 
-Introduced in **MintCore v1.3.0**.
+## v0.4.0 — WizardConnect Removal
 
-## Why the Version Was Bumped
+### Why the Version Was Bumped
 
-MintCore v0.3.0 replaces the WalletConnect v2 engine with Wizard Connect — a BCH-native
-wallet connection protocol. This removes all WalletConnect, EVM, and multi-chain
-abstractions and replaces them with a clean, BCH-first API.
+MintCore removes all WizardConnect-related code, types, providers, adapters, and
+utilities. The SDK is now clean of WizardConnect and ready for WalletConnect v2
+integration.
 
-The change is a minor version bump because:
+### What Changed
 
-- New exports were added (`WizardConnectClientLike`, `WizardConnectSession`,
-  `WizardConnectProvider`, `BchWalletAdapter`).
-- Breaking changes were made to `WalletSession` (`topic`/`chainId` removed; `id` added)
-  and `WalletManager.connect()` / `reconnect()` (signatures simplified).
+#### Removed
 
-Consumers upgrading from v1.2.x must update their `WalletManager.connect()` calls and
-any code that reads `WalletSession.topic` or `WalletSession.chainId`.
+| Symbol                      | Reason                                               |
+|-----------------------------|------------------------------------------------------|
+| `WizardConnectProvider`     | Removed — no replacement yet (WalletConnect v2 TBD) |
+| `WizardConnectProviderOptions` | Removed with `WizardConnectProvider`             |
+| `WizardConnectClientLike`   | Renamed to `BchWalletClientLike`                    |
+| `WizardConnectSession`      | Renamed to `BchWalletSession`                       |
+| `WizardAdapter`             | Renamed to `BaseWalletAdapter`                      |
+| `WizardAdapterClientLike`   | Renamed to `WalletAdapterClientLike`                |
 
-## What Changed
+#### Added / Renamed
 
-### Removed
+| Symbol                  | Description                                              |
+|-------------------------|----------------------------------------------------------|
+| `BchWalletClientLike`   | Generic duck-typed BCH wallet client interface           |
+| `BchWalletSession`      | Generic session descriptor (was `WizardConnectSession`)  |
+| `BaseWalletAdapter`     | Base `WalletAdapter` implementation (was `WizardAdapter`)|
+| `WalletAdapterClientLike` | Generic adapter client interface                       |
 
-| Symbol                  | Reason                                      |
-|-------------------------|---------------------------------------------|
-| `WalletConnectProvider` | Replaced by `WizardConnectProvider`         |
-| `WalletConnectClientLike` | Replaced by `WizardConnectClientLike`     |
-| `WalletConnectProviderOptions` | Replaced by `WizardConnectProviderOptions` |
-| `WalletConnectV2Client` | Replaced by `WizardConnectClientLike`       |
-| `WalletConnectSession`  | Replaced by `WizardConnectSession`          |
-| `WalletSession.topic`   | Replaced by `WalletSession.id`              |
-| `WalletSession.chainId` | Removed — Wizard Connect is BCH-native      |
-| `WalletManager.connect()` `chainId` parameter | Removed          |
-| `WalletManager.reconnect()` `chainId` parameter | Removed        |
-| `WalletClient.signMessage()` | Removed — `personal_sign` is EVM-derived |
-| `WalletManager.signMessage()` | Removed                              |
+### Migration Notes for Consumers
 
-### Added
-
-| Symbol                    | Description                                         |
-|---------------------------|-----------------------------------------------------|
-| `WizardConnectClientLike` | Duck-typed interface for Wizard Connect clients     |
-| `WizardConnectSession`    | Session descriptor returned by the connection flow  |
-| `WizardConnectProvider`   | `WalletProvider` adapter for Wizard Connect         |
-| `WizardConnectProviderOptions` | Options for `WizardConnectProvider`            |
-| `BchWalletAdapter`        | Modular interface for BCH wallet adapters           |
-
-## Migration Notes for Consumers
-
-### Updating `WalletManager.connect()`
-
-**Before (v0.2.x):**
+#### Updating imports
 
 ```typescript
-import { WalletManager, WalletType } from "mintcore";
-
-const session = await manager.connect(signClient, wcSession, WalletType.Paytaca, "bch:bitcoincash");
-```
-
-**After (v0.3.0):**
-
-```typescript
-import { WalletManager, WalletType } from "mintcore";
-
-const session = await manager.connect(wizardClient, wizardSession, WalletType.Paytaca);
-// No chainId parameter — Wizard Connect is BCH-native
-```
-
-### Updating `WalletSession` access
-
-**Before (v0.2.x):**
-
-```typescript
-console.log(session.topic);   // WalletConnect topic
-console.log(session.chainId); // CAIP-2 chain ID
-```
-
-**After (v0.3.0):**
-
-```typescript
-console.log(session.id);      // Wizard Connect session ID
-// chainId no longer exists on WalletSession
-```
-
-### Replacing `WalletConnectProvider` with `WizardConnectProvider`
-
-**Before (v0.2.x):**
-
-```typescript
-import SignClient from "@walletconnect/sign-client";
-import { WalletConnectProvider } from "mintcore";
-
-const client = await SignClient.init({ projectId: "..." });
-const provider = new WalletConnectProvider({ client, topic: session.topic });
-```
-
-**After (v0.3.0):**
-
-```typescript
+// Before
 import { WizardConnectProvider } from "mintcore";
+import type { WizardConnectClientLike, WizardConnectSession } from "mintcore";
+import { WizardAdapter } from "mintcore";
+import type { WizardAdapterClientLike } from "mintcore";
 
-// client must be an initialised Wizard Connect client
-const provider = new WizardConnectProvider({ client });
+// After
+import type { BchWalletClientLike, BchWalletSession } from "mintcore";
+import { BaseWalletAdapter } from "mintcore";
+import type { WalletAdapterClientLike } from "mintcore";
 ```
 
-### No UI Provided
+#### Replacing `WizardConnectProvider`
 
-The wallet engine does not include a QR code modal, connection dialog, or any other UI
-element. If your application requires a visual connection flow, you must implement or
-integrate a UI component separately.
+`WizardConnectProvider` has been removed. If you were using it with `TransactionBuilder`,
+you will need to wait for the upcoming WalletConnect v2 provider or supply your own
+`WalletProvider` implementation in the meantime.
+
+#### Replacing `WizardAdapter`
+
+```typescript
+// Before
+import { WizardAdapter } from "mintcore";
+const adapter = new WizardAdapter({ client });
+
+// After
+import { BaseWalletAdapter } from "mintcore";
+const adapter = new BaseWalletAdapter({ client });
+```
+
+The constructor signature and all methods are identical.
+
+#### Wallet adapters no longer reference WizardConnect
+
+`PaytacaAdapter`, `CashonizeAdapter`, and `ZapitAdapter` previously read from
+`window.*.wizardconnect`. They now read from the top-level `window.*` namespace
+directly. Update any code that relied on the `.wizardconnect` property path.
+
+---
+
+## v0.3.0 — Wizard Connect Engine (replaces WalletConnect v2)
+
+### What Changed
+
+MintCore v0.3.0 replaced the WalletConnect v2 engine with Wizard Connect. This has now
+also been removed in v0.4.0 (see above).
+
+#### Removed in v0.3.0
+
+| Symbol                  | Reason                                           |
+|-------------------------|--------------------------------------------------|
+| `WalletConnectProvider` | Replaced by `WizardConnectProvider`             |
+| `WalletConnectClientLike` | Replaced by `WizardConnectClientLike`         |
+| `WalletConnectProviderOptions` | Replaced by `WizardConnectProviderOptions`|
+| `WalletConnectV2Client` | Replaced by `WizardConnectClientLike`           |
+| `WalletConnectSession`  | Replaced by `WizardConnectSession`              |
+| `WalletSession.topic`   | Replaced by `WalletSession.id`                  |
+| `WalletSession.chainId` | Removed — not needed for BCH-native protocols   |
+| `WalletManager.connect()` `chainId` parameter | Removed             |
+| `WalletManager.reconnect()` `chainId` parameter | Removed           |

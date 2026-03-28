@@ -19,10 +19,10 @@ non-fungible tokens (NFT) on the Bitcoin Cash network. It is designed to be:
 MintCore
 ├── src/core/          Core minting engine and transaction builder
 ├── src/adapters/      Adapters bridging engine and libauth
-├── src/providers/     UTXO and broadcast providers (Chronik, ElectrumX, WizardConnect)
+├── src/providers/     UTXO and broadcast providers (Chronik, ElectrumX)
 ├── src/types/         Shared TypeScript type definitions
 ├── src/utils/         Utility functions (hex, keys, fees, validation)
-├── src/wallet/        Wizard Connect wallet engine (no UI, no React)
+├── src/wallet/        BCH wallet engine (no UI, no React)
 └── src/ui/            React UI layer — WalletProvider, useWallet, ConnectWalletButton
 ```
 
@@ -46,10 +46,10 @@ transactions to the network. Two built-in providers are included:
 - **ChronikProvider** — connects to a [Chronik](https://chronik.be.cash/) indexer
 - **ElectrumXProvider** — connects to an ElectrumX / Fulcrum server
 
-## Wallet Engine (v0.3.0 — Wizard Connect)
+## Wallet Engine
 
-MintCore includes a Wizard Connect engine for Bitcoin Cash wallet integration, replacing
-the earlier WalletConnect v2 engine introduced in v0.2.0.
+MintCore includes a BCH wallet engine for wallet integration, preparing for
+WalletConnect v2.
 
 - **BCH-native** — built exclusively for Bitcoin Cash; no EVM chain IDs, multi-chain
   abstractions, or WalletConnect session topics.
@@ -64,13 +64,13 @@ the earlier WalletConnect v2 engine introduced in v0.2.0.
 ```
 src/wallet/
 ├── WalletTypes.ts          Enumerations, constants, and interfaces
-├── WalletClient.ts         Low-level Wizard Connect adapter
+├── WalletClient.ts         Low-level BCH wallet adapter
 ├── WalletManager.ts        High-level lifecycle orchestrator
 ├── registry.ts             WalletRegistry and createWalletRegistry factory
 ├── adapters/
 │   ├── WalletAdapter.ts    Unified adapter interface
 │   ├── BchWalletAdapter.ts BCH-specific adapter interface
-│   └── WizardAdapter.ts    WizardConnect implementation of WalletAdapter
+│   └── BaseWalletAdapter.ts Base implementation of WalletAdapter
 └── index.ts                Public re-export barrel
 ```
 
@@ -90,7 +90,7 @@ src/ui/
 │   ├── WalletProvider.tsx  Context provider and connection logic
 │   ├── useWallet.ts        Primary React hook
 │   └── adapters/
-│       └── WizardAdapter.ts  Re-export of WizardAdapter from the SDK
+│       └── BaseWalletAdapter.ts  Re-export of BaseWalletAdapter from the SDK
 └── components/
     └── ConnectWalletButton.tsx  Connect/disconnect button component
 ```
