@@ -29,8 +29,7 @@ import {
   TOKEN_OUTPUT_DUST,
   DUST_THRESHOLD,
 } from "../utils/fee.js";
-import { ChronikProvider } from "../providers/ChronikProvider.js";
-import { ElectrumXProvider } from "../providers/ElectrumXProvider.js";
+import { fetchUtxos as providerFetchUtxos, broadcastTransaction as providerBroadcast } from "./providerUtils.js";
 import { UtxoLock } from "../utils/utxoLock.js";
 import { validateMintRequest, validateBatchMintOptions } from "../utils/validate.js";
 
@@ -92,7 +91,7 @@ interface RawTx {
  * ```
  */
 export class BatchMintEngine {
-  private readonly utxoProvider?: ChronikProvider | ElectrumXProvider;
+  private readonly hasProvider: boolean;
 
   /**
    * Per-instance UTXO reservation registry. Locks are acquired before
@@ -102,17 +101,7 @@ export class BatchMintEngine {
   private readonly lock = new UtxoLock();
 
   constructor(private readonly config: MintConfig) {
-    if (config.utxoProviderUrl) {
-      this.utxoProvider = new ChronikProvider(
-        config.utxoProviderUrl,
-        config.network
-      );
-    } else if (config.electrumxProviderUrl) {
-      this.utxoProvider = new ElectrumXProvider(
-        config.electrumxProviderUrl,
-        config.network
-      );
-    }
+    this.hasProvider = !!(config.utxoProviderUrl || config.electrumxProviderUrl);
   }
 
   // ─── Public API ────────────────────────────────────────────────────────────
@@ -159,9 +148,9 @@ export class BatchMintEngine {
 
     // Fetch and filter UTXOs when a provider is available
     let allUtxos: Utxo[] = [];
-    if (this.utxoProvider) {
+    if (this.hasProvider) {
       const address = await this.getFundingAddress();
-      const raw = await this.utxoProvider.fetchUtxos(address);
+      const raw = await providerFetchUtxos(this.config, address);
       // Remove dust and unusable UTXOs
       allUtxos = raw.filter((u) => u.satoshis > DUST_THRESHOLD);
       if (allUtxos.length === 0) {
@@ -277,7 +266,7 @@ export class BatchMintEngine {
         "No signing credentials configured. Provide `privateKey` or `walletProvider` in MintConfig."
       );
     }
-    if (!this.utxoProvider) {
+    if (!this.hasProvider) {
       throw new MintCoreError(
         "Execution requires a UTXO provider. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
       );
@@ -345,7 +334,7 @@ export class BatchMintEngine {
   ): Promise<{ txid: string; fee: number }> {
     const lockingBytecode = await this.getLockingBytecode();
     const address = await this.getFundingAddress();
-    const freshUtxos = await this.utxoProvider!.fetchUtxos(address);
+    const freshUtxos = await providerFetchUtxos(this.config, address);
 
     // Re-check: verify every planned input is still unspent
     for (const planned of plannedTx.inputs) {
@@ -417,7 +406,7 @@ export class BatchMintEngine {
       ? await this.signWithPrivateKey(tx, sortedInputs, lockingBytecode)
       : await this.signWithWallet(tx, sortedInputs, lockingBytecode);
 
-    const txid = await this.utxoProvider!.broadcastTransaction(signedHex);
+    const txid = await providerBroadcast(this.config, signedHex);
 
     const actualFee =
       totalInput -

@@ -14,8 +14,6 @@ import {
 import { MintConfig } from "../types/MintConfig.js";
 import { TokenSchema } from "../types/TokenSchema.js";
 import { Utxo, BuiltTransaction } from "../types/TransactionTypes.js";
-import { ChronikProvider } from "../providers/ChronikProvider.js";
-import { ElectrumXProvider } from "../providers/ElectrumXProvider.js";
 import { MintCoreError } from "../utils/errors.js";
 import { fromHex, toHex } from "../utils/hex.js";
 import {
@@ -25,6 +23,7 @@ import {
   DUST_THRESHOLD,
 } from "../utils/fee.js";
 import { selectUtxos } from "../utils/coinselect.js";
+import { fetchUtxos as providerFetchUtxos, broadcastTransaction as providerBroadcast } from "./providerUtils.js";
 
 /** Maximum allowed byte-length for a BCMR URI. */
 const MAX_BCMR_URI_BYTES = 512;
@@ -39,14 +38,10 @@ const BCMR_MARKER = new Uint8Array([0x42, 0x43, 0x4d, 0x52]);
 const OP_RETURN = 0x6a;
 
 export class TransactionBuilder {
-  private readonly utxoProvider?: ChronikProvider | ElectrumXProvider;
+  private readonly hasProvider: boolean;
 
   constructor(private config: MintConfig) {
-    if (config.utxoProviderUrl) {
-      this.utxoProvider = new ChronikProvider(config.utxoProviderUrl, config.network);
-    } else if (config.electrumxProviderUrl) {
-      this.utxoProvider = new ElectrumXProvider(config.electrumxProviderUrl, config.network);
-    }
+    this.hasProvider = !!(config.utxoProviderUrl || config.electrumxProviderUrl);
   }
 
   async build(schema: TokenSchema): Promise<BuiltTransaction> {
@@ -58,7 +53,7 @@ export class TransactionBuilder {
 
     const lockingBytecode = await this.getLockingBytecode();
 
-    if (!this.utxoProvider) {
+    if (!this.hasProvider) {
       return this.buildOfflineTransaction(schema, lockingBytecode);
     }
 
@@ -83,12 +78,12 @@ export class TransactionBuilder {
    * @throws {MintCoreError} when no provider is configured or the broadcast fails.
    */
   async broadcast(txHex: string): Promise<string> {
-    if (!this.utxoProvider) {
+    if (!this.hasProvider) {
       throw new MintCoreError(
         "No UTXO provider configured. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
       );
     }
-    return this.utxoProvider.broadcastTransaction(txHex);
+    return providerBroadcast(this.config, txHex);
   }
 
   /**
@@ -355,7 +350,7 @@ export class TransactionBuilder {
   }
 
   private async fetchUtxos(): Promise<Utxo[]> {
-    if (!this.utxoProvider) {
+    if (!this.hasProvider) {
       throw new MintCoreError(
         "No UTXO provider configured. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
       );
@@ -363,7 +358,7 @@ export class TransactionBuilder {
     const address = this.config.walletProvider && !this.config.privateKey
       ? await this.config.walletProvider.getAddress()
       : this.deriveAddressFromConfig();
-    return this.utxoProvider.fetchUtxos(address);
+    return providerFetchUtxos(this.config, address);
   }
 
   /** Encode the NFT commitment string to bytes (hex or UTF-8). */

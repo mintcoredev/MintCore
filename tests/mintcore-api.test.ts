@@ -24,10 +24,6 @@ import {
   validateUtxo,
   validateMintRequest,
   validateBatchMintOptions,
-  // ── providers ───────────────────────────────────────────────────────────────
-  ChronikProvider,
-  ElectrumXProvider,
-
   // ── fee / coin-selection ────────────────────────────────────────────────────
   estimateFee,
   estimateBatchTxFee,
@@ -38,15 +34,6 @@ import {
   MINTING_BATON_INPUT_OVERHEAD,
   selectUtxos,
   UtxoLock,
-  // ── wallet engine ───────────────────────────────────────────────────────────
-  WalletClient,
-  WalletManager,
-  WalletType,
-  WalletConnectionState,
-  BCH_CHAIN_IDS,
-  BaseWalletAdapter,
-  WalletRegistry,
-  createWalletRegistry,
   // ── misc ────────────────────────────────────────────────────────────────────
   MintCoreError,
   VERSION,
@@ -84,30 +71,6 @@ describe("api/mintcore – constructor exports", () => {
 
   it("BatchMintEngine is a constructor", () => {
     expect(typeof BatchMintEngine).toBe("function");
-  });
-
-  it("ChronikProvider is a constructor", () => {
-    expect(typeof ChronikProvider).toBe("function");
-  });
-
-  it("ElectrumXProvider is a constructor", () => {
-    expect(typeof ElectrumXProvider).toBe("function");
-  });
-
-  it("WalletClient is a constructor", () => {
-    expect(typeof WalletClient).toBe("function");
-  });
-
-  it("WalletManager is a constructor", () => {
-    expect(typeof WalletManager).toBe("function");
-  });
-
-  it("BaseWalletAdapter is a constructor", () => {
-    expect(typeof BaseWalletAdapter).toBe("function");
-  });
-
-  it("WalletRegistry is a constructor", () => {
-    expect(typeof WalletRegistry).toBe("function");
   });
 
   it("UtxoLock is a constructor", () => {
@@ -196,10 +159,6 @@ describe("api/mintcore – function exports", () => {
     expect(typeof selectUtxos).toBe("function");
   });
 
-  it("createWalletRegistry is a function", () => {
-    expect(typeof createWalletRegistry).toBe("function");
-  });
-
   it("generateKey is a function", () => {
     expect(typeof generateKey).toBe("function");
   });
@@ -267,26 +226,6 @@ describe("api/mintcore – constant exports", () => {
     expect(typeof VERSION).toBe("string");
     expect(VERSION.length).toBeGreaterThan(0);
   });
-
-  it("WalletType enum has expected members", () => {
-    expect(WalletType.Paytaca).toBe("paytaca");
-    expect(WalletType.Cashonize).toBe("cashonize");
-    expect(WalletType.Zapit).toBe("zapit");
-  });
-
-  it("WalletConnectionState enum has expected members", () => {
-    expect(WalletConnectionState.Disconnected).toBe("disconnected");
-    expect(WalletConnectionState.Connected).toBe("connected");
-    expect(WalletConnectionState.Connecting).toBe("connecting");
-    expect(WalletConnectionState.Reconnecting).toBe("reconnecting");
-    expect(WalletConnectionState.Error).toBe("error");
-  });
-
-  it("BCH_CHAIN_IDS maps all three networks", () => {
-    expect(BCH_CHAIN_IDS.mainnet).toBe("bch:bitcoincash");
-    expect(BCH_CHAIN_IDS.testnet).toBe("bch:bchtest");
-    expect(BCH_CHAIN_IDS.regtest).toBe("bch:bchreg");
-  });
 });
 
 // ─── Smoke-tests: critical paths through the unified API ─────────────────────
@@ -331,10 +270,5 @@ describe("api/mintcore – smoke tests", () => {
     });
     expect(result.hex).toMatch(/^[0-9a-f]+$/);
     expect(result.txid).toMatch(/^[0-9a-f]{64}$/);
-  });
-
-  it("createWalletRegistry returns an empty registry when passed no adapters", () => {
-    const reg = createWalletRegistry([]);
-    expect(reg.size).toBe(0);
   });
 });
