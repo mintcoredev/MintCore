@@ -35,10 +35,10 @@ export const WalletContext = createContext<WalletContextValue | null>(null);
  *
  * ### Setup
  * ```tsx
- * import { WizardAdapter } from "mintcore";
+ * import { PaytacaAdapter } from "mintcore";
  * import { WalletProvider } from "@mintcore/ui";
  *
- * const adapters = [new WizardAdapter({ client })];
+ * const adapters = [new PaytacaAdapter()];
  *
  * function App() {
  *   return (

@@ -9,16 +9,13 @@ import {
 // ─── Duck-typed interfaces ─────────────────────────────────────────────────────
 
 /**
- * Minimal duck-typed interface for a Wizard Connect client.
+ * Minimal duck-typed interface for a BCH wallet client.
  *
  * Keeping this interface narrow avoids a hard dependency on any specific
- * Wizard Connect package while remaining fully compatible with any
+ * wallet connection package while remaining fully compatible with any
  * conforming implementation.
- *
- * Wizard Connect is a BCH-native wallet connection protocol — there are no
- * multi-chain abstractions, CAIP-2 chain IDs, or JSON-RPC session topics.
  */
-export interface WizardConnectClientLike {
+export interface BchWalletClientLike {
   /**
    * Returns the list of CashAddr strings managed by the connected wallet.
    * Each entry is a standard BCH CashAddress, e.g. `"bitcoincash:q..."`.
@@ -41,9 +38,9 @@ export interface WizardConnectClientLike {
 }
 
 /**
- * A Wizard Connect session descriptor returned by the connection flow.
+ * A BCH wallet session descriptor returned by the connection flow.
  */
-export interface WizardConnectSession {
+export interface BchWalletSession {
   /** Unique session identifier assigned by the wallet. */
   id: string;
   /** Optional expiry timestamp (ms). */
@@ -54,16 +51,16 @@ export interface WizardConnectSession {
 
 export interface WalletClientOptions {
   /**
-   * An initialised Wizard Connect client.  The client must already have an
+   * An initialised BCH wallet client.  The client must already have an
    * active session before `WalletClient` can be used.
    */
-  client: WizardConnectClientLike;
+  client: BchWalletClientLike;
 
   /**
-   * The Wizard Connect session to wrap.  Obtain it via the connection flow
-   * managed outside this engine layer.
+   * The wallet session to wrap.  Obtain it via the connection flow managed
+   * outside this engine layer.
    */
-  session: WizardConnectSession;
+  session: BchWalletSession;
 
   /**
    * Which wallet application approved this session.
@@ -72,8 +69,7 @@ export interface WalletClientOptions {
   walletType: WalletType;
 
   /**
-   * BCH network for this connection.  Used for informational purposes only —
-   * Wizard Connect is BCH-native and does not require a CAIP-2 chain ID.
+   * BCH network for this connection.  Used for informational purposes only.
    * Defaults to `"mainnet"`.
    */
   network?: BchNetwork;
@@ -82,9 +78,9 @@ export interface WalletClientOptions {
 // ─── WalletClient ─────────────────────────────────────────────────────────────
 
 /**
- * Low-level Wizard Connect adapter for BCH.
+ * Low-level BCH wallet adapter.
  *
- * Wraps a {@link WizardConnectClientLike} and provides a clean, typed API for
+ * Wraps a {@link BchWalletClientLike} and provides a clean, typed API for
  * address resolution and transaction signing without any UI or browser-specific
  * logic.
  *
@@ -96,8 +92,8 @@ export interface WalletClientOptions {
  * | `disconnect()`        | Terminates the wallet connection         |
  */
 export class WalletClient {
-  private readonly client: WizardConnectClientLike;
-  private readonly session: WizardConnectSession;
+  private readonly client: BchWalletClientLike;
+  private readonly session: BchWalletSession;
   private readonly walletType: WalletType;
   private readonly network: BchNetwork;
   private cachedAddress: string | undefined;
@@ -226,7 +222,7 @@ export class WalletClient {
   }
 
   /**
-   * Terminates the Wizard Connect session.
+   * Terminates the wallet session.
    *
    * After calling `disconnect()` all subsequent method calls will throw a
    * {@link MintCoreError}.

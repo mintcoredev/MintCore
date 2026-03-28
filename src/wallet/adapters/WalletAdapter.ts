@@ -35,7 +35,7 @@ export interface WalletAdapter {
   readonly id?: string;
 
   /**
-   * Human-readable identifier for this wallet (e.g. `"WizardConnect"`).
+   * Human-readable identifier for this wallet (e.g. `"Paytaca"`).
    * Used as the key in the wallet registry and as a fallback when {@link id}
    * is not set.
    */

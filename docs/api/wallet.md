@@ -1,7 +1,7 @@
 # Wallet API Reference
 
-Public API introduced in MintCore v1.3.0 via the `WalletManager` and `WalletClient`
-classes. All exports are available from the top-level `mintcore` package entry point.
+Public API for the `WalletManager` and `WalletClient` classes. All exports are available
+from the top-level `mintcore` package entry point.
 
 ## WalletManager Methods
 
@@ -9,17 +9,17 @@ classes. All exports are available from the top-level `mintcore` package entry p
 
 ```typescript
 connect(
-  client: WizardConnectClientLike,
-  session: WizardConnectSession,
+  client: BchWalletClientLike,
+  session: BchWalletSession,
   walletType: WalletType
 ): Promise<WalletSession>
 ```
 
-Registers an externally established Wizard Connect session. Transitions the manager
-from `Disconnected` to `Connected` and emits the `connected` event.
+Registers an externally established wallet session. Transitions the manager from
+`Disconnected` to `Connected` and emits the `connected` event.
 
-- `client` — duck-typed Wizard Connect client instance
-- `session` — the approved Wizard Connect session object
+- `client` — duck-typed BCH wallet client instance
+- `session` — the approved wallet session object
 - `walletType` — one of the `WalletType` enum values
 
 Returns the `WalletSession` record for the established connection.
@@ -32,8 +32,8 @@ Returns the `WalletSession` record for the established connection.
 disconnect(): Promise<void>
 ```
 
-Terminates the active Wizard Connect session, resets internal state to `Disconnected`,
-and emits the `disconnected` event.
+Terminates the active wallet session, resets internal state to `Disconnected`, and emits
+the `disconnected` event.
 
 ---
 
@@ -175,7 +175,7 @@ Serialisable record of an active wallet connection.
 
 | Field        | Description                                                    |
 |--------------|----------------------------------------------------------------|
-| `id`         | Wizard Connect session identifier                              |
+| `id`         | Unique session identifier                                      |
 | `address`    | CashAddress of the connected wallet                            |
 | `walletType` | Wallet application that approved the session                   |
 | `createdAt`  | Unix timestamp (ms) when the session was established           |
@@ -224,10 +224,10 @@ Maps each event name to its payload type.
 
 ---
 
-### WizardConnectClientLike
+### BchWalletClientLike
 
 ```typescript
-interface WizardConnectClientLike {
+interface BchWalletClientLike {
   getAccounts(): Promise<string[]>;
   signTransaction(
     txHex: string,
@@ -237,21 +237,21 @@ interface WizardConnectClientLike {
 }
 ```
 
-Duck-typed interface for a Wizard Connect client. Pass any object that satisfies this
-shape to `WalletManager.connect()` or `WizardConnectProvider`.
+Duck-typed interface for a BCH wallet client. Pass any object that satisfies this shape
+to `WalletManager.connect()`.
 
 ---
 
-### WizardConnectSession
+### BchWalletSession
 
 ```typescript
-interface WizardConnectSession {
+interface BchWalletSession {
   id: string;
   expiry?: number;
 }
 ```
 
-Minimal Wizard Connect session descriptor.
+Minimal session descriptor used when constructing a `WalletClient`.
 
 ---
 

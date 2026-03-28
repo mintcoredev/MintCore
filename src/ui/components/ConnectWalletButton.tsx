@@ -33,7 +33,7 @@ export interface ConnectWalletButtonProps {
  * - When **connected**, it displays the truncated wallet address and an option
  *   to disconnect.
  *
- * No direct imports from WizardConnect or any other wallet SDK are used here —
+ * No direct wallet SDK imports are used here —
  * everything goes through {@link useWallet}.
  *
  * ### Usage

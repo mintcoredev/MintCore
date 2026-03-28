@@ -30,7 +30,28 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [1.3.0] - 2026-03-22 — Wizard Connect Engine (replaces WalletConnect v2)
+## [1.4.0] - 2026-03-28 — WizardConnect Removal
+
+### Changed
+
+- **`WizardConnectClientLike`** renamed to `BchWalletClientLike` — generic duck-typed
+  BCH wallet client interface, no longer tied to WizardConnect.
+- **`WizardConnectSession`** renamed to `BchWalletSession` — generic session descriptor.
+- **`WizardAdapter`** renamed to `BaseWalletAdapter` — base `WalletAdapter`
+  implementation; constructor signature and all methods unchanged.
+- **`WizardAdapterClientLike`** renamed to `WalletAdapterClientLike`.
+- **`PaytacaAdapter`**, **`CashonizeAdapter`**, **`ZapitAdapter`** — no longer read from
+  `window.*.wizardconnect`; now read directly from `window.paytaca`,
+  `window.cashonize`, and `window.zapit` respectively.
+
+### Removed
+
+- **`WizardConnectProvider`** and **`WizardConnectProviderOptions`** — removed entirely.
+  A WalletConnect v2 provider will be introduced in a future release.
+
+---
+
+## [1.3.0] - 2026-03-22 — Wizard Connect Engine (replaces WalletConnect v2, itself removed in v1.4.0)
 
 ### Added
 
@@ -129,7 +150,8 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 - TypeScript type definitions for all public exports.
 - Vitest-based test suite.
 
-[Unreleased]: https://github.com/mintcoredev/MintCore/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/mintcoredev/MintCore/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/mintcoredev/MintCore/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mintcoredev/MintCore/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mintcoredev/MintCore/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/mintcoredev/MintCore/compare/v1.0.0...v1.1.0

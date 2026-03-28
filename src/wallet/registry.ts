@@ -11,10 +11,10 @@ import type { WalletAdapter } from "./adapters/WalletAdapter.js";
  *
  * ### Example
  * ```ts
- * import { WizardAdapter, createWalletRegistry } from "mintcore";
+ * import { PaytacaAdapter, createWalletRegistry } from "mintcore";
  *
  * const registry = createWalletRegistry([
- *   new WizardAdapter({ client: wizardClient }),
+ *   new PaytacaAdapter(),
  *   // new PaytacaAdapter({ ... }),
  *   // new CashonizeAdapter({ ... }),
  * ]);
@@ -84,7 +84,7 @@ export class WalletRegistry {
  *
  * @example
  * ```ts
- * const registry = createWalletRegistry([new WizardAdapter({ client })]);
+ * const registry = createWalletRegistry([new PaytacaAdapter()]);
  * ```
  */
 export function createWalletRegistry(adapters: WalletAdapter[]): WalletRegistry {

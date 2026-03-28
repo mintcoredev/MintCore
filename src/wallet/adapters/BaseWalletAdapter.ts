@@ -3,16 +3,16 @@ import { toHex, fromHex } from "../../utils/hex.js";
 import type { WalletAdapter } from "./WalletAdapter.js";
 import { WalletType } from "../WalletTypes.js";
 
-// ─── Extended duck-typed client interface ─────────────────────────────────────
+// ─── Duck-typed client interface ──────────────────────────────────────────────
 
 /**
- * WizardConnect client interface used by {@link WizardAdapter}.
+ * Duck-typed client interface used by {@link BaseWalletAdapter}.
  *
  * Extends the minimal signing contract with an optional `signMessage` method
  * so adapters built on wallets that support BCH message signing can expose
  * that capability without requiring all wallets to implement it.
  */
-export interface WizardAdapterClientLike {
+export interface WalletAdapterClientLike {
   /**
    * Returns the list of CashAddr strings managed by the connected wallet.
    * Each entry is a standard BCH CashAddress, e.g. `"bitcoincash:q..."`.
@@ -57,37 +57,35 @@ export interface BchSourceOutput {
   lockingBytecode: Uint8Array;
 }
 
-// ─── WizardAdapter ────────────────────────────────────────────────────────────
+// ─── BaseWalletAdapter ────────────────────────────────────────────────────────
 
 /**
- * WizardConnect adapter implementing the {@link WalletAdapter} interface.
+ * Base BCH wallet adapter implementing the {@link WalletAdapter} interface.
  *
- * Wraps a {@link WizardAdapterClientLike} and exposes the unified wallet API
- * to MintCore's React layer.  No UI logic lives here — the adapter is purely
- * a bridge between the Wizard Connect client and the `WalletAdapter` contract.
+ * Wraps a {@link WalletAdapterClientLike} and exposes the unified wallet API
+ * to MintCore's wallet layer.  No UI logic lives here — the adapter is purely
+ * a bridge between the wallet client and the `WalletAdapter` contract.
  *
  * ### Usage with the wallet registry
  * ```ts
- * import { WizardAdapter, createWalletRegistry } from "mintcore";
+ * import { BaseWalletAdapter, createWalletRegistry } from "mintcore";
  *
- * const client = ...; // your initialised Wizard Connect client
- * const registry = createWalletRegistry([new WizardAdapter({ client })]);
+ * const client = ...; // your initialised wallet client
+ * const registry = createWalletRegistry([new BaseWalletAdapter({ client })]);
  * ```
  *
  * ### BCH / CashTokens signing
  * For full CashTokens signing (which requires `sourceOutputs`), use the
  * BCH-specific helper {@link signBchTransaction} after casting to
- * `WizardAdapter`:
+ * `BaseWalletAdapter`:
  * ```ts
- * const signed = await (adapter as WizardAdapter).signBchTransaction(
+ * const signed = await (adapter as BaseWalletAdapter).signBchTransaction(
  *   txHex,
  *   sourceOutputs
  * );
  * ```
- * Alternatively, use the existing {@link WizardConnectProvider} directly with
- * `TransactionBuilder`, which handles `sourceOutputs` automatically.
  */
-export class WizardAdapter implements WalletAdapter {
+export class BaseWalletAdapter implements WalletAdapter {
   readonly name: string;
   readonly walletType: WalletType | undefined;
 
@@ -97,7 +95,7 @@ export class WizardAdapter implements WalletAdapter {
     [WalletType.Zapit]: "Zapit",
   };
 
-  private readonly client: WizardAdapterClientLike;
+  private readonly client: WalletAdapterClientLike;
   private cachedAddress: string | undefined;
   private connected = false;
 
@@ -109,18 +107,18 @@ export class WizardAdapter implements WalletAdapter {
 
   constructor(options: {
     type?: WalletType;
-    client: WizardAdapterClientLike | null;
+    client: WalletAdapterClientLike | null;
   }) {
     if (options.client === null || options.client === undefined) {
       throw new MintCoreError(
-        "WizardAdapter: a valid client instance is required"
+        "BaseWalletAdapter: a valid client instance is required"
       );
     }
     this.walletType = options.type;
     this.name =
       options.type != null
-        ? WizardAdapter.WALLET_NAMES[options.type]
-        : "WizardConnect";
+        ? BaseWalletAdapter.WALLET_NAMES[options.type]
+        : "BaseWalletAdapter";
     this.client = options.client;
   }
 
@@ -137,7 +135,7 @@ export class WizardAdapter implements WalletAdapter {
   validate(): void {
     if (this.client == null) {
       throw new MintCoreError(
-        "WizardAdapter invariant violated: client is null"
+        "BaseWalletAdapter invariant violated: client is null"
       );
     }
   }
@@ -145,11 +143,10 @@ export class WizardAdapter implements WalletAdapter {
   // ─── WalletAdapter implementation ─────────────────────────────────────────
 
   /**
-   * Initiates the Wizard Connect session by requesting the wallet's accounts.
+   * Initiates the wallet connection by requesting the wallet's accounts.
    *
-   * In a real integration the WizardConnect SDK would open a QR/deep-link
-   * pairing flow here.  The adapter resolves once `getAccounts()` succeeds,
-   * signalling that the connection is active.
+   * The adapter resolves once `getAccounts()` succeeds, signalling that the
+   * connection is active.
    */
   async connect(): Promise<void> {
     let accounts: string[];
@@ -157,16 +154,16 @@ export class WizardAdapter implements WalletAdapter {
       accounts = await this.client.getAccounts();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WizardAdapter: connect failed — ${msg}`);
+      throw new MintCoreError(`BaseWalletAdapter: connect failed — ${msg}`);
     }
 
     if (!Array.isArray(accounts) || accounts.length === 0) {
-      throw new MintCoreError("WizardAdapter: no accounts returned during connect");
+      throw new MintCoreError("BaseWalletAdapter: no accounts returned during connect");
     }
 
     const raw = accounts[0];
     if (typeof raw !== "string" || raw.trim() === "") {
-      throw new MintCoreError("WizardAdapter: invalid account entry returned during connect");
+      throw new MintCoreError("BaseWalletAdapter: invalid account entry returned during connect");
     }
 
     this.cachedAddress = raw;
@@ -175,7 +172,7 @@ export class WizardAdapter implements WalletAdapter {
   }
 
   /**
-   * Disconnects from the Wizard Connect session.
+   * Disconnects the wallet session.
    */
   async disconnect(): Promise<void> {
     if (!this.connected) {
@@ -208,16 +205,16 @@ export class WizardAdapter implements WalletAdapter {
       accounts = await this.client.getAccounts();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WizardAdapter: getAddress failed — ${msg}`);
+      throw new MintCoreError(`BaseWalletAdapter: getAddress failed — ${msg}`);
     }
 
     if (!Array.isArray(accounts) || accounts.length === 0) {
-      throw new MintCoreError("WizardAdapter: getAccounts returned no accounts");
+      throw new MintCoreError("BaseWalletAdapter: getAccounts returned no accounts");
     }
 
     const raw = accounts[0];
     if (typeof raw !== "string" || raw.trim() === "") {
-      throw new MintCoreError("WizardAdapter: getAccounts returned an invalid account entry");
+      throw new MintCoreError("BaseWalletAdapter: getAccounts returned an invalid account entry");
     }
 
     this.cachedAddress = raw;
@@ -235,7 +232,7 @@ export class WizardAdapter implements WalletAdapter {
 
     if (typeof this.client.signMessage !== "function") {
       throw new MintCoreError(
-        "WizardAdapter: the connected client does not support signMessage"
+        "BaseWalletAdapter: the connected client does not support signMessage"
       );
     }
 
@@ -243,16 +240,16 @@ export class WizardAdapter implements WalletAdapter {
       return await this.client.signMessage(message);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WizardAdapter: signMessage failed — ${msg}`);
+      throw new MintCoreError(`BaseWalletAdapter: signMessage failed — ${msg}`);
     }
   }
 
   /**
    * Signs a serialised unsigned transaction.
    *
-   * Converts the raw `Uint8Array` to hex, calls the Wizard Connect client
-   * with empty `sourceOutputs` (sufficient for wallets that derive signing
-   * context independently), and returns the signed transaction as raw bytes.
+   * Converts the raw `Uint8Array` to hex, calls the wallet client with empty
+   * `sourceOutputs` (sufficient for wallets that derive signing context
+   * independently), and returns the signed transaction as raw bytes.
    *
    * **For full CashTokens signing** (which requires explicit `sourceOutputs`
    * for SIGHASH computation), use {@link signBchTransaction} instead.
@@ -267,12 +264,12 @@ export class WizardAdapter implements WalletAdapter {
       signedHex = await this.client.signTransaction(txHex, []);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WizardAdapter: signTransaction failed — ${msg}`);
+      throw new MintCoreError(`BaseWalletAdapter: signTransaction failed — ${msg}`);
     }
 
     if (typeof signedHex !== "string" || signedHex.trim() === "") {
       throw new MintCoreError(
-        "WizardAdapter: signTransaction returned an invalid response"
+        "BaseWalletAdapter: signTransaction returned an invalid response"
       );
     }
 
@@ -282,8 +279,8 @@ export class WizardAdapter implements WalletAdapter {
   /**
    * BCH / CashTokens–specific signing helper.
    *
-   * Passes explicit `sourceOutputs` to the Wizard Connect client, which is
-   * required for correct SIGHASH pre-image computation on Bitcoin Cash.
+   * Passes explicit `sourceOutputs` to the wallet client, which is required
+   * for correct SIGHASH pre-image computation on Bitcoin Cash.
    *
    * @param txHex - Unsigned transaction as a lowercase hex string.
    * @param sourceOutputs - UTXOs being spent, in input order.
@@ -305,12 +302,12 @@ export class WizardAdapter implements WalletAdapter {
       result = await this.client.signTransaction(txHex, serialisedOutputs);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WizardAdapter: signBchTransaction failed — ${msg}`);
+      throw new MintCoreError(`BaseWalletAdapter: signBchTransaction failed — ${msg}`);
     }
 
     if (typeof result !== "string" || result.trim() === "") {
       throw new MintCoreError(
-        "WizardAdapter: signBchTransaction returned an invalid response"
+        "BaseWalletAdapter: signBchTransaction returned an invalid response"
       );
     }
 
@@ -318,8 +315,7 @@ export class WizardAdapter implements WalletAdapter {
   }
 
   /**
-   * Broadcasts a signed transaction to the network via the Wizard Connect
-   * client.
+   * Broadcasts a signed transaction to the network via the wallet client.
    *
    * @throws {MintCoreError} if the underlying client does not implement
    *   `broadcastTransaction`.
@@ -329,7 +325,7 @@ export class WizardAdapter implements WalletAdapter {
 
     if (typeof this.client.broadcastTransaction !== "function") {
       throw new MintCoreError(
-        "WizardAdapter: the connected client does not support broadcastTransaction"
+        "BaseWalletAdapter: the connected client does not support broadcastTransaction"
       );
     }
 
@@ -339,7 +335,7 @@ export class WizardAdapter implements WalletAdapter {
       return await this.client.broadcastTransaction(txHex);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new MintCoreError(`WizardAdapter: broadcastTransaction failed — ${msg}`);
+      throw new MintCoreError(`BaseWalletAdapter: broadcastTransaction failed — ${msg}`);
     }
   }
 
@@ -378,7 +374,7 @@ export class WizardAdapter implements WalletAdapter {
   private assertConnected(): void {
     if (!this.connected) {
       throw new MintCoreError(
-        "WizardAdapter: cannot perform operation — wallet is not connected"
+        "BaseWalletAdapter: cannot perform operation — wallet is not connected"
       );
     }
   }

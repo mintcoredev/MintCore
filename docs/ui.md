@@ -23,28 +23,25 @@ npm install mintcore @mintcore/ui
 
 ```
 @mintcore/ui
-├── WalletProvider    — React context provider; owns connection state and actions
-├── useWallet         — Primary hook; exposes state and actions to components
+├── WalletProvider      — React context provider; owns connection state and actions
+├── useWallet           — Primary hook; exposes state and actions to components
 ├── ConnectWalletButton — Self-contained connect/disconnect button component
-└── WizardAdapter     — Re-export of the SDK WizardAdapter (for convenience)
+└── BaseWalletAdapter   — Re-export of the SDK BaseWalletAdapter (for convenience)
 ```
 
 The `@mintcore/ui` package **only** contains React-specific code.  All wallet
-engine logic (Wizard Connect sessions, signing, UTXO handling) lives in the
-`mintcore` SDK and is accessed through the `WalletAdapter` interface.
+engine logic (signing, UTXO handling) lives in the `mintcore` SDK and is accessed
+through the `WalletAdapter` interface.
 
 ---
 
 ## Quick Start
 
 ```tsx
-import { WizardAdapter } from "mintcore";
+import { PaytacaAdapter } from "mintcore";
 import { WalletProvider, ConnectWalletButton } from "@mintcore/ui";
 
-// Initialise your Wizard Connect client (see WizardConnect docs)
-const client = ...; // WizardAdapterClientLike
-
-const adapters = [new WizardAdapter({ client })];
+const adapters = [new PaytacaAdapter()];
 
 export function App() {
   return (
@@ -86,12 +83,12 @@ descendant components via `useWallet`.
 ### Example
 
 ```tsx
-import { WizardAdapter } from "mintcore";
+import { PaytacaAdapter, CashonizeAdapter } from "mintcore";
 import { WalletProvider } from "@mintcore/ui";
 
 const adapters = [
-  new WizardAdapter({ client: wizardClient }),
-  // new PaytacaAdapter({ ... }),
+  new PaytacaAdapter(),
+  new CashonizeAdapter(),
 ];
 
 function Root() {
@@ -204,18 +201,18 @@ function Header() {
 
 ---
 
-## `WizardAdapter`
+## `BaseWalletAdapter`
 
 ```tsx
-import { WizardAdapter } from "@mintcore/ui";
+import { BaseWalletAdapter } from "@mintcore/ui";
 // or equivalently:
-import { WizardAdapter } from "mintcore";
+import { BaseWalletAdapter } from "mintcore";
 ```
 
-`@mintcore/ui` re-exports `WizardAdapter` from the `mintcore` SDK for convenience.
+`@mintcore/ui` re-exports `BaseWalletAdapter` from the `mintcore` SDK for convenience.
 You can import it from either package.
 
-See the [Wallet API Reference](api/wallet.md) for full `WizardAdapter` documentation.
+See the [Wallet API Reference](api/wallet.md) for full `BaseWalletAdapter` documentation.
 
 ---
 
@@ -251,5 +248,5 @@ Simplified connection state used by the React UI layer. It is a subset of the SD
 ## Further Reading
 
 - [Wallet Engine Architecture](wallet/architecture.md) — the pure-TypeScript wallet engine
-- [Wallet API Reference](api/wallet.md) — `WalletManager`, `WizardAdapter`, and all wallet types
+- [Wallet API Reference](api/wallet.md) — `WalletManager`, `BaseWalletAdapter`, and all wallet types
 - [Overview & Architecture](overview.md) — MintCore architecture overview

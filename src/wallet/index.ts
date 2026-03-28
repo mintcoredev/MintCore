@@ -1,7 +1,7 @@
 /**
  * MintCore Wallet Engine
  *
- * Wizard Connect integration for Bitcoin Cash.
+ * BCH wallet integration layer.
  * Supports Paytaca, Cashonize, and Zapit wallets.
  *
  * No UI, no React, no DOM — pure TypeScript engine.
@@ -10,8 +10,8 @@
 export {
   WalletClient,
   type WalletClientOptions,
-  type WizardConnectClientLike,
-  type WizardConnectSession,
+  type BchWalletClientLike,
+  type BchWalletSession,
 } from "./WalletClient.js";
 
 export {
@@ -32,10 +32,10 @@ export {
 export type { BchWalletAdapter } from "./adapters/BchWalletAdapter.js";
 export type { WalletAdapter } from "./adapters/WalletAdapter.js";
 export {
-  WizardAdapter,
-  type WizardAdapterClientLike,
+  BaseWalletAdapter,
+  type WalletAdapterClientLike,
   type BchSourceOutput,
-} from "./adapters/WizardAdapter.js";
+} from "./adapters/BaseWalletAdapter.js";
 
 export { PaytacaAdapter } from "./adapters/PaytacaAdapter.js";
 export { ZapitAdapter } from "./adapters/ZapitAdapter.js";

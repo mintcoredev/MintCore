@@ -9,9 +9,9 @@
  *
  * ### Quick start
  * ```tsx
- * import { WizardAdapter, WalletProvider, ConnectWalletButton } from "@mintcore/ui";
+ * import { BaseWalletAdapter, WalletProvider, ConnectWalletButton } from "@mintcore/ui";
  *
- * const adapters = [new WizardAdapter({ client })];
+ * const adapters = [new BaseWalletAdapter({ client })];
  *
  * function App() {
  *   return (

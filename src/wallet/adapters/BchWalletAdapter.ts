@@ -11,7 +11,7 @@ import type { WalletType } from "../WalletTypes.js";
  * 1. Create a class that implements `BchWalletAdapter`.
  * 2. Implement `connect()`, `disconnect()`, `getAddress()`, and
  *    `signTransaction()` using the wallet's native API.
- * 3. Pass an instance to `WalletManager` or `WizardConnectProvider`.
+ * 3. Pass an instance to `WalletManager`.
  *
  * ### Example
  * ```ts

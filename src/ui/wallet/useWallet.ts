@@ -9,7 +9,7 @@ import type { WalletContextValue } from "./WalletContext.js";
  * functions.
  *
  * This hook is completely framework-agnostic with respect to wallet
- * implementations — it knows nothing about WizardConnect or any other
+ * implementations — it knows nothing about any specific wallet protocol or
  * protocol.  All wallet logic is encapsulated in the active
  * {@link WalletAdapter}.
  *
@@ -30,7 +30,7 @@ import type { WalletContextValue } from "./WalletContext.js";
  *   } = useWallet();
  *
  *   return (
- *     <button onClick={() => connect("WizardConnect")}>
+ *     <button onClick={() => connect("Paytaca")}>
  *       {isConnected ? address : "Connect Wallet"}
  *     </button>
  *   );

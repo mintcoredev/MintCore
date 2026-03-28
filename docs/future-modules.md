@@ -41,8 +41,8 @@ limits, and supply cap checks.
 - **Batch Minting** — `BatchMintEngine` shipped in v1.1.0. Plans and executes large
   batches of token mint operations across multiple transactions, with greedy UTXO
   selection, fee estimation, and UTXO locking. See [docs/batch-minting.md](batch-minting.md).
-- **Wizard Connect Engine** — `WalletManager` updated in v1.3.0. Connects BCH wallets
-  (Paytaca, Cashonize, Zapit) via Wizard Connect — a BCH-native protocol — without
+- **BCH Wallet Engine** — `WalletManager` updated in v1.3.0. Connects BCH wallets
+  (Paytaca, Cashonize, Zapit) via a modular adapter interface — without
   requiring a private key. See [docs/wallet/architecture.md](wallet/architecture.md).
 
 See [CHANGELOG](../CHANGELOG.md) for a full history of shipped features.

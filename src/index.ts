@@ -15,8 +15,6 @@ export { TransactionBuilder } from "./core/TransactionBuilder.js";
 export { BatchMintEngine } from "./core/BatchMintEngine.js";
 export { ChronikProvider } from "./providers/ChronikProvider.js";
 export { ElectrumXProvider } from "./providers/ElectrumXProvider.js";
-export { WizardConnectProvider } from "./providers/WizardConnectProvider.js";
-export type { WizardConnectProviderOptions } from "./providers/WizardConnectProvider.js";
 export { estimateFee, estimateBatchTxFee, estimateBatchTxSize, DEFAULT_FEE_RATE, TOKEN_OUTPUT_DUST, DUST_THRESHOLD, MINTING_BATON_INPUT_OVERHEAD } from "./utils/fee.js";
 export { selectUtxos } from "./utils/coinselect.js";
 export type { CoinSelectResult } from "./utils/coinselect.js";
@@ -31,7 +29,7 @@ export {
   WalletType,
   WalletConnectionState,
   BCH_CHAIN_IDS,
-  WizardAdapter,
+  BaseWalletAdapter,
   PaytacaAdapter,
   ZapitAdapter,
   CashonizeAdapter,
@@ -40,8 +38,8 @@ export {
 } from "./wallet/index.js";
 export type {
   WalletClientOptions,
-  WizardConnectClientLike,
-  WizardConnectSession,
+  BchWalletClientLike,
+  BchWalletSession,
   WalletManagerOptions,
   BchNetwork,
   WalletSession,
@@ -49,6 +47,6 @@ export type {
   WalletEventPayload,
   BchWalletAdapter,
   WalletAdapter,
-  WizardAdapterClientLike,
+  WalletAdapterClientLike,
   BchSourceOutput,
 } from "./wallet/index.js";

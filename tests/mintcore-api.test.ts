@@ -27,7 +27,7 @@ import {
   // ── providers ───────────────────────────────────────────────────────────────
   ChronikProvider,
   ElectrumXProvider,
-  WizardConnectProvider,
+
   // ── fee / coin-selection ────────────────────────────────────────────────────
   estimateFee,
   estimateBatchTxFee,
@@ -44,7 +44,7 @@ import {
   WalletType,
   WalletConnectionState,
   BCH_CHAIN_IDS,
-  WizardAdapter,
+  BaseWalletAdapter,
   WalletRegistry,
   createWalletRegistry,
   // ── misc ────────────────────────────────────────────────────────────────────
@@ -94,10 +94,6 @@ describe("api/mintcore – constructor exports", () => {
     expect(typeof ElectrumXProvider).toBe("function");
   });
 
-  it("WizardConnectProvider is a constructor", () => {
-    expect(typeof WizardConnectProvider).toBe("function");
-  });
-
   it("WalletClient is a constructor", () => {
     expect(typeof WalletClient).toBe("function");
   });
@@ -106,8 +102,8 @@ describe("api/mintcore – constructor exports", () => {
     expect(typeof WalletManager).toBe("function");
   });
 
-  it("WizardAdapter is a constructor", () => {
-    expect(typeof WizardAdapter).toBe("function");
+  it("BaseWalletAdapter is a constructor", () => {
+    expect(typeof BaseWalletAdapter).toBe("function");
   });
 
   it("WalletRegistry is a constructor", () => {

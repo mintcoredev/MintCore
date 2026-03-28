@@ -1,25 +1,20 @@
 # Wallet Engine Architecture
 
-This document describes the Wizard Connect engine introduced in MintCore v1.3.0.
+This document describes the BCH wallet engine in MintCore.
 
 ## Purpose
 
 The wallet engine provides a typed, framework-agnostic layer for connecting Bitcoin Cash
-wallets to MintCore via [Wizard Connect](https://wizardconnect.cash/) — a BCH-native
-wallet connection protocol. It enables consumers to request addresses and sign
-transactions through any supported BCH wallet without coupling to any UI framework,
-browser API, or DOM environment.
-
-Wizard Connect is purpose-built for BCH: there are no multi-chain abstractions,
-EVM chain IDs, CAIP-2 identifiers, or WalletConnect session topics.
+wallets to MintCore. It enables consumers to request addresses and sign transactions
+through any supported BCH wallet without coupling to any UI framework, browser API, or
+DOM environment.
 
 ## Components
 
 ### WalletClient
 
-`WalletClient` is the low-level Wizard Connect adapter. It wraps a duck-typed
-`WizardConnectClientLike` instance and translates Wizard Connect calls into
-typed BCH operations.
+`WalletClient` is the low-level BCH wallet adapter. It wraps a duck-typed
+`BchWalletClientLike` instance and translates wallet calls into typed BCH operations.
 
 Responsibilities:
 
@@ -39,8 +34,7 @@ subscribers of state transitions via a typed event emitter.
 
 Responsibilities:
 
-- Accepting an externally established Wizard Connect session and promoting it to
-  `Connected` state
+- Accepting an externally established wallet session and promoting it to `Connected` state
 - Disconnecting and cleaning up the active session
 - Reconnecting with a new session while preserving subscriber registrations
 - Delegating signing operations to the active `WalletClient`
@@ -51,7 +45,7 @@ Connection state machine:
 ```
 Disconnected → Connecting → Connected
                                ↓
-                          Reconnecting → Connected
+                           Reconnecting → Connected
                                ↓
                              Error
 ```
@@ -66,7 +60,7 @@ Responsibilities:
 - Defining `WalletType` — the enumeration of supported wallet applications
 - Defining `WalletConnectionState` — the enumeration of connection lifecycle states
 - Defining `BCH_CHAIN_IDS` — canonical CAIP-2 identifiers for each BCH network (for
-  reference; not used in the Wizard Connect protocol itself)
+  reference only)
 - Defining `WalletSession` — the serialisable record of an established connection
 - Defining `WalletEventName` and `WalletEventPayload` — the typed event contract
 
@@ -82,14 +76,12 @@ Responsibilities:
 - Providing `connect()`, `disconnect()`, `getAddress()`, and `signTransaction()` methods
 - Hiding all wallet-specific transport details behind a uniform API
 
-### WizardConnectProvider
+### BaseWalletAdapter
 
-`WizardConnectProvider` implements the `WalletProvider` interface for use with
-`TransactionBuilder`. It wraps a `WizardConnectClientLike` and exposes the two methods
-required to fund and sign minting transactions:
-
-- `getAddress()` — resolves the connected CashAddress
-- `signTransaction()` — signs the unsigned transaction via the wallet
+`BaseWalletAdapter` is the base implementation of the `WalletAdapter` interface.
+Concrete adapters (`PaytacaAdapter`, `CashonizeAdapter`, `ZapitAdapter`) extend it to
+provide wallet-specific client injection while inheriting all connection, signing, and
+event-handling logic.
 
 ## BCH Namespaces
 
@@ -111,8 +103,8 @@ The `WalletType` enumeration includes the following wallet applications:
 | `WalletType.Cashonize`| Cashonize          |
 | `WalletType.Zapit`    | Zapit              |
 
-Any wallet that implements the `getAccounts()` and `signTransaction()` Wizard Connect
-methods is compatible with `WalletClient`.
+Any wallet that implements the `getAccounts()` and `signTransaction()` methods is
+compatible with `WalletClient`.
 
 ## Engine-Only Constraints
 
@@ -129,5 +121,5 @@ To preserve this generality, the following constraints are enforced:
   RPC methods, or multi-chain wallet logic.
 - **No styling** — the engine contains no CSS, CSS-in-JS, or inline style definitions.
 
-Consumers are responsible for providing the Wizard Connect client instance and for
-rendering any UI that initiates the connection flow.
+Consumers are responsible for providing the wallet client instance and for rendering any
+UI that initiates the connection flow.
