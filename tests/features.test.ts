@@ -44,9 +44,9 @@ describe("estimateFee", () => {
     expect(fee2).toBeGreaterThanOrEqual(fee1 * 2 - 1);
   });
 
-  it("adds token-prefix overhead when hasToken is true", () => {
-    const withToken = estimateFee(1, 1, DEFAULT_FEE_RATE, true);
-    const withoutToken = estimateFee(1, 1, DEFAULT_FEE_RATE, false);
+  it("adds token-prefix overhead when numTokenOutputs is 1", () => {
+    const withToken = estimateFee(1, 1, DEFAULT_FEE_RATE, 1);
+    const withoutToken = estimateFee(1, 1, DEFAULT_FEE_RATE, 0);
     expect(withToken).toBeGreaterThan(withoutToken);
   });
 
@@ -67,7 +67,7 @@ describe("selectUtxos", () => {
 
   it("selects the single sufficient UTXO", () => {
     const utxos: Utxo[] = [makeUtxo(100_000)];
-    const result = selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, true);
+    const result = selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, 1);
     expect(result.selected).toHaveLength(1);
     expect(result.fee).toBeGreaterThan(0);
     expect(result.totalInput).toBe(100_000);
@@ -82,7 +82,7 @@ describe("selectUtxos", () => {
       makeUtxo(700, 3),
       makeUtxo(700, 4),
     ];
-    const result = selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, true);
+    const result = selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, 1);
     expect(result.selected.length).toBeGreaterThan(1);
     expect(result.totalInput).toBeGreaterThanOrEqual(TOKEN_OUTPUT_DUST + result.fee);
   });
@@ -93,37 +93,37 @@ describe("selectUtxos", () => {
       makeUtxo(100_000, 1),
       makeUtxo(200, 2),
     ];
-    const result = selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, true);
+    const result = selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, 1);
     // The 100_000-sat UTXO should be picked first
     expect(result.selected[0].satoshis).toBe(100_000);
   });
 
   it("includes a non-zero change when surplus exceeds dust threshold", () => {
     const utxos: Utxo[] = [makeUtxo(500_000)];
-    const result = selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, true);
+    const result = selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, 1);
     expect(result.change).toBeGreaterThan(DUST_THRESHOLD);
     expect(result.totalInput - result.fee - TOKEN_OUTPUT_DUST).toBeGreaterThan(DUST_THRESHOLD);
   });
 
   it("reports change of 0 when surplus is below DUST_THRESHOLD", () => {
     // Construct a UTXO that provides exactly TOKEN_OUTPUT_DUST + fee (no real change)
-    const feeSingle = estimateFee(1, 1, DEFAULT_FEE_RATE, true);
+    const feeSingle = estimateFee(1, 1, DEFAULT_FEE_RATE, 1);
     const exactAmount = TOKEN_OUTPUT_DUST + feeSingle + DUST_THRESHOLD - 1;
-    const result = selectUtxos([makeUtxo(exactAmount)], TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, true);
+    const result = selectUtxos([makeUtxo(exactAmount)], TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, 1);
     expect(result.change).toBe(0);
   });
 
   it("throws MintCoreError when no UTXOs are provided", () => {
-    expect(() => selectUtxos([], TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, true)).toThrow(MintCoreError);
+    expect(() => selectUtxos([], TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, 1)).toThrow(MintCoreError);
   });
 
   it("throws MintCoreError when funds are insufficient", () => {
     const utxos: Utxo[] = [makeUtxo(1, 0), makeUtxo(1, 1)];
     expect(() =>
-      selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, true)
+      selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, 1)
     ).toThrow(MintCoreError);
     expect(() =>
-      selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, true)
+      selectUtxos(utxos, TOKEN_OUTPUT_DUST, 1, DEFAULT_FEE_RATE, 1)
     ).toThrow(/[Ii]nsufficient/);
   });
 });

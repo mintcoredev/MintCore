@@ -10,7 +10,7 @@ export interface TokenSchema {
   symbol: string;
   decimals: number;
   initialSupply: bigint;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   nft?: NftOptions;
   /**
    * BCMR (Bitcoin Cash Metadata Registry) URI or IPFS CID to attach as an

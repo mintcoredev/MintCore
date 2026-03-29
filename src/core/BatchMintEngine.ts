@@ -613,13 +613,7 @@ export class BatchMintEngine {
         "Cannot derive funding address: no private key configured."
       );
     }
-    const privKeyBin = fromHex(this.config.privateKey);
-    const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
-    if (typeof pubKey === "string") {
-      throw new MintCoreError(`Invalid private key: ${pubKey}`);
-    }
-    const pkh = hash160(pubKey);
-    const locking = encodeLockingBytecodeP2pkh(pkh);
+    const lockingBytecode = this.getLockingBytecode();
     const prefixMap: Record<string, CashAddressNetworkPrefix> = {
       mainnet: CashAddressNetworkPrefix.mainnet,
       testnet: CashAddressNetworkPrefix.testnet,
@@ -631,10 +625,10 @@ export class BatchMintEngine {
         `Unrecognized network: "${this.config.network}"`
       );
     }
-    const result = lockingBytecodeToCashAddress(locking, prefix);
-    if (typeof result !== "string") {
+    const result = lockingBytecodeToCashAddress({ bytecode: lockingBytecode, prefix });
+    if (typeof result === "string") {
       throw new MintCoreError("Failed to derive CashAddress from private key");
     }
-    return result;
+    return result.address;
   }
 }
