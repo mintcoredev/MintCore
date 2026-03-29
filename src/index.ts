@@ -4,3 +4,7 @@ export * from "./scripts/index.js";
 export * from "./utils/index.js";
 export * from "./types/index.js";
 export { VERSION } from "./version.js";
+export { MintEngine } from "./core/MintEngine.js";
+export { BatchMintEngine } from "./core/BatchMintEngine.js";
+export { LibauthAdapter } from "./adapters/LibauthAdapter.js";
+export { TransactionBuilder } from "./core/TransactionBuilder.js";

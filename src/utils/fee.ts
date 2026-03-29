@@ -39,22 +39,23 @@ export const DEFAULT_FEE_RATE = 1.0;
  * Estimate the serialized transaction size in bytes and return the fee in
  * satoshis (rounded up to the nearest integer).
  *
- * @param numInputs   - number of P2PKH inputs
- * @param numOutputs  - total number of outputs (including token, OP_RETURN, change)
- * @param feeRate     - sat/byte (default: 1.0)
- * @param hasToken    - whether one output carries a CashToken (adds TOKEN_PREFIX_OVERHEAD)
+ * @param numInputs       - number of P2PKH inputs
+ * @param numOutputs      - total number of outputs (including token, OP_RETURN, change)
+ * @param feeRate         - sat/byte (default: 1.0)
+ * @param numTokenOutputs - number of outputs carrying a CashToken (each adds
+ *                          TOKEN_PREFIX_OVERHEAD bytes); defaults to 1
  */
 export function estimateFee(
   numInputs: number,
   numOutputs: number,
   feeRate: number = DEFAULT_FEE_RATE,
-  hasToken: boolean = true
+  numTokenOutputs: number = 1
 ): number {
   const size =
     TX_OVERHEAD +
     numInputs * P2PKH_INPUT_SIZE +
     numOutputs * P2PKH_OUTPUT_SIZE +
-    (hasToken ? TOKEN_PREFIX_OVERHEAD : 0);
+    numTokenOutputs * TOKEN_PREFIX_OVERHEAD;
   return Math.ceil(size * feeRate);
 }
 

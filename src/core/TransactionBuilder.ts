@@ -50,16 +50,15 @@ export class TransactionBuilder {
       );
     }
 
-    const lockingBytecode = this.deriveLockingBytecode();
-
-    if (!this.hasProvider) {
-      return this.buildOfflineTransaction(schema, lockingBytecode);
-    }
-
     const privKeyBin = fromHex(this.config.privateKey);
     const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
     if (typeof pubKey === "string") {
       throw new MintCoreError(`Invalid private key: ${pubKey}`);
+    }
+    const lockingBytecode = encodeLockingBytecodeP2pkh(hash160(pubKey));
+
+    if (!this.hasProvider) {
+      return this.buildOfflineTransaction(schema, lockingBytecode);
     }
 
     return this.buildFundedTransaction(schema, lockingBytecode, privKeyBin, pubKey);
@@ -206,7 +205,7 @@ export class TransactionBuilder {
       TOKEN_OUTPUT_DUST,
       nonChangeOutputCount,
       feeRate,
-      true
+      1
     );
 
     // Sort selected UTXOs lexicographically by txid then vout for deterministic
@@ -254,10 +253,6 @@ export class TransactionBuilder {
     return encodeLockingBytecodeP2pkh(pkh);
   }
 
-  /**
-   * Return the P2PKH locking bytecode, preferring the wallet provider address
-   * when no private key is configured.
-   */
   /** Derive the CashAddress for the configured network and private key. */
   private deriveAddressFromConfig(): string {
     if (!this.config.privateKey) {
@@ -273,11 +268,11 @@ export class TransactionBuilder {
     if (!prefix) {
       throw new MintCoreError(`Unrecognized network: "${this.config.network}"`);
     }
-    const result = lockingBytecodeToCashAddress(lockingBytecode, prefix);
-    if (typeof result !== "string") {
+    const result = lockingBytecodeToCashAddress({ bytecode: lockingBytecode, prefix });
+    if (typeof result === "string") {
       throw new MintCoreError("Failed to derive CashAddress from private key");
     }
-    return result;
+    return result.address;
   }
 
   private async fetchUtxos(): Promise<Utxo[]> {

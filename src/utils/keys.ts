@@ -17,6 +17,12 @@ export function privateKeyToBin(key: string): Uint8Array {
  * Generate a cryptographically secure random 32-byte private key.
  *
  * @returns A 64-character lowercase hex string representing the private key.
+ *
+ * @remarks
+ * **Security notice**: treat the returned value as a secret. Never log it,
+ * commit it to source control, or transmit it over insecure channels. Store it
+ * in a secure secrets manager or hardware wallet. Loss of the private key means
+ * permanent loss of any funds or tokens controlled by it.
  */
 export function generateKey(): string {
   return toHex(generatePrivateKey());
@@ -48,9 +54,9 @@ export function deriveAddress(
     throw new MintCoreError(`Unrecognized network: "${network}"`);
   }
 
-  const address = lockingBytecodeToCashAddress(lockingBytecode, prefix);
-  if (typeof address !== "string") {
+  const result = lockingBytecodeToCashAddress({ bytecode: lockingBytecode, prefix });
+  if (typeof result === "string") {
     throw new MintCoreError("Failed to derive CashAddress from private key");
   }
-  return address;
+  return result.address;
 }

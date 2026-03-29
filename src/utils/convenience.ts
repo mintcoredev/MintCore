@@ -23,12 +23,24 @@ export async function mintNFT(
   return engine.mint(schema);
 }
 
+/**
+ * Verify a mint transaction by its txid.
+ *
+ * @param _config - Reserved for future on-chain verification via a UTXO
+ *   provider. Currently unused — this function validates the txid format only.
+ * @param txid - The transaction ID to validate.
+ * @returns `true` when `txid` is a valid 64-character hex string;
+ *   `false` otherwise.
+ *
+ * @remarks
+ * This is a **placeholder** implementation. It performs a local format check
+ * only and does **not** contact any network provider to confirm the
+ * transaction has been broadcast or confirmed.
+ */
 export async function verifyMint(
   _config: MintConfig,
   txid: string
 ): Promise<boolean> {
-  // Placeholder: validates txid format only (64 hex characters).
-  // Replace with real on-chain verification via MintCore / ChronikProvider.
   if (!txid || typeof txid !== "string") return false;
   return /^[0-9a-f]{64}$/i.test(txid);
 }

@@ -2,6 +2,7 @@ import { TokenSchema, TokenCapability } from "../types/TokenSchema.js";
 import type { Utxo } from "../types/TransactionTypes.js";
 import type { MintRequest, BatchMintOptions } from "../types/BatchMintTypes.js";
 import { MintCoreError } from "./errors.js";
+import { decodeCashAddress } from "@bitauth/libauth";
 
 const VALID_NFT_CAPABILITIES: TokenCapability[] = ["none", "mutable", "minting"];
 const MAX_NFT_COMMITMENT_BYTES = 40;
@@ -168,7 +169,7 @@ export function validateMintRequest(req: MintRequest): void {
     }
   }
 
-  // recipientAddress (optional) — must be a non-empty CashAddress string
+  // recipientAddress (optional) — must be a valid CashAddress (checksum verified)
   if (req.recipientAddress !== undefined) {
     if (
       typeof req.recipientAddress !== "string" ||
@@ -176,12 +177,8 @@ export function validateMintRequest(req: MintRequest): void {
     ) {
       throw new MintCoreError("Recipient address must be a non-empty string");
     }
-    // Lightweight CashAddress format check (prefix + payload)
-    if (
-      !/^(bitcoincash:|bchtest:|bchreg:)[a-z0-9]{20,}$/i.test(
-        req.recipientAddress
-      )
-    ) {
+    const decoded = decodeCashAddress(req.recipientAddress);
+    if (typeof decoded === "string") {
       throw new MintCoreError(
         `Invalid recipient address format: "${req.recipientAddress}"`
       );

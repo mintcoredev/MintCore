@@ -20,18 +20,18 @@ export interface CoinSelectResult {
  * The fee is recomputed whenever the number of selected inputs grows so that
  * the estimate reflects the actual transaction size.
  *
- * @param utxos          - available UTXOs
- * @param requiredOutput - satoshis required for non-change outputs (e.g. dust for token output)
+ * @param utxos               - available UTXOs
+ * @param requiredOutput      - satoshis required for non-change outputs (e.g. dust for token output)
  * @param numNonChangeOutputs - number of outputs excluding change
- * @param feeRate        - sat/byte
- * @param hasToken       - whether one output carries a CashToken
+ * @param feeRate             - sat/byte
+ * @param numTokenOutputs     - number of outputs carrying a CashToken (each adds TOKEN_PREFIX_OVERHEAD)
  */
 export function selectUtxos(
   utxos: Utxo[],
   requiredOutput: number,
   numNonChangeOutputs: number,
   feeRate: number,
-  hasToken: boolean
+  numTokenOutputs: number
 ): CoinSelectResult {
   if (utxos.length === 0) {
     throw new MintCoreError("No UTXOs available for coin selection");
@@ -49,11 +49,11 @@ export function selectUtxos(
 
     // Recompute fee with the current number of selected inputs.
     // Include a change output in the estimate only if we might have change.
-    const feeWithoutChange = estimateFee(selected.length, numNonChangeOutputs, feeRate, hasToken);
+    const feeWithoutChange = estimateFee(selected.length, numNonChangeOutputs, feeRate, numTokenOutputs);
     const possibleChange = totalInput - requiredOutput - feeWithoutChange;
     const numOutputs = numNonChangeOutputs + (possibleChange > DUST_THRESHOLD ? 1 : 0);
     const fee = numOutputs > numNonChangeOutputs
-      ? estimateFee(selected.length, numOutputs, feeRate, hasToken)
+      ? estimateFee(selected.length, numOutputs, feeRate, numTokenOutputs)
       : feeWithoutChange;
 
     if (totalInput >= requiredOutput + fee) {
