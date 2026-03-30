@@ -372,3 +372,23 @@ describe("TransactionBuilder – UTXO-funded mode with dynamic fee", () => {
     expect(highResult.fee!).toBeGreaterThan(lowResult.fee!);
   });
 });
+
+// ─── Single BCMR OP_RETURN output ─────────────────────────────────────────────
+
+describe("BCMR OP_RETURN output count", () => {
+  it("emits only one BCMR OP_RETURN when bcmrHash is present", async () => {
+    const builder = new TransactionBuilder(baseConfig);
+    const schema: TokenSchema = {
+      name: "Hash Token",
+      symbol: "HT",
+      decimals: 0,
+      initialSupply: 1n,
+      bcmrUri: "https://example.com/bcmr.json",
+      bcmrHash: "ab".repeat(32),
+    };
+
+    const result = await builder.build(schema);
+    const count = (result.hex.match(/42434d52/g) || []).length;
+    expect(count).toBe(1);
+  });
+});

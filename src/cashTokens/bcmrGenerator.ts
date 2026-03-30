@@ -38,6 +38,42 @@ export function generateBcmr(options: BcmrGeneratorOptions): BcmrDocument {
     throw new MintCoreError("BCMR name is required and must be a non-empty string");
   }
 
+  // Validate decimals
+  if (decimals !== undefined && (decimals < 0 || decimals > 18)) {
+    throw new MintCoreError("decimals must be between 0 and 18");
+  }
+
+  // Validate symbol
+  if (symbol !== undefined && (typeof symbol !== "string" || !symbol)) {
+    throw new MintCoreError("symbol must be a non-empty string");
+  }
+
+  // Validate timestamp
+  if (options.timestamp !== undefined) {
+    if (isNaN(Date.parse(options.timestamp))) {
+      throw new MintCoreError("timestamp must be a valid ISO 8601 string");
+    }
+  }
+
+  // Validate URIs
+  if (uris !== undefined) {
+    if (typeof uris !== "object" || Array.isArray(uris)) {
+      throw new MintCoreError("uris must be an object of string values");
+    }
+    for (const [k, v] of Object.entries(uris)) {
+      if (typeof v !== "string") {
+        throw new MintCoreError(`uri '${k}' must be a string`);
+      }
+    }
+  }
+
+  // Validate tags
+  if (tags !== undefined) {
+    if (!Array.isArray(tags) || !tags.every(t => typeof t === "string")) {
+      throw new MintCoreError("tags must be an array of strings");
+    }
+  }
+
   const timestamp = options.timestamp ?? new Date().toISOString();
 
   const tokenRecord: BcmrDocument["identities"][string][string]["token"] = { category };
@@ -64,18 +100,35 @@ export function generateBcmr(options: BcmrGeneratorOptions): BcmrDocument {
 }
 
 /**
+ * Recursively canonicalize a value to a JSON string with sorted object keys.
+ * This ensures a stable, deterministic representation regardless of insertion order.
+ * Properties with `undefined` values are omitted, matching JSON.stringify behavior.
+ */
+function canonicalize(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return "[" + (value as unknown[]).map(canonicalize).join(",") + "]";
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).filter(k => obj[k] !== undefined).sort();
+  return "{" + keys.map(k => JSON.stringify(k) + ":" + canonicalize(obj[k])).join(",") + "}";
+}
+
+/**
  * Compute the SHA-256 content hash of a BCMR document.
  *
- * The hash is derived from the JSON serialisation of the document (UTF-8
- * encoded) and is returned as a lowercase 64-character hex string.  Use this
- * value as the `bcmrHash` in {@link TokenSchema} to create a hash-pinned
- * authchain registration.
+ * The hash is derived from the canonical JSON serialisation of the document
+ * (object keys sorted recursively, UTF-8 encoded) and returned as a lowercase
+ * 64-character hex string.  Use this value as the `bcmrHash` in
+ * {@link TokenSchema} to create a hash-pinned authchain registration.
  *
  * @param document - A BCMR document, typically produced by {@link generateBcmr}.
  * @returns A 64-character lowercase hex string (32-byte SHA-256 digest).
  */
 export function hashBcmr(document: BcmrDocument): string {
-  const json = JSON.stringify(document);
-  const bytes = new TextEncoder().encode(json);
+  const canonical = canonicalize(document);
+  const bytes = new TextEncoder().encode(canonical);
   return toHex(sha256.hash(bytes));
 }
