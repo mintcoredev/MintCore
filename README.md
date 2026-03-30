@@ -88,8 +88,37 @@ Define a token with `TokenSchema`:
 | `nft` | `NftOptions` | Optional — adds NFT capability and commitment |
 | `metadata` | `object` | Optional — arbitrary key/value metadata (max 1 000 chars) |
 | `bcmrUri` | `string` | Optional — IPFS CID or URL to a BCMR JSON file attached as OP\_RETURN |
+| `bcmrHash` | `string` | Optional — 64-hex-char SHA-256 hash of the BCMR document; when set with `bcmrUri`, emits `OP_RETURN BCMR <hash> <uri>` (hash-pinned authchain) |
 
 NFT capabilities follow the CashTokens spec: `"none"` (immutable NFT), `"mutable"` (commitment can be updated), `"minting"` (holder can mint more).
+
+### BCMR Metadata
+
+Generate a [CHIP-BCMR v2](https://github.com/bitjson/chip-bcmr) document and embed its content hash in the genesis transaction for a hash-pinned authchain registration:
+
+```ts
+import { generateBcmr, hashBcmr, mintFungibleToken } from "mintcore";
+
+const doc = generateBcmr({
+  category: "abcd...0001", // 64-char hex genesis txid
+  name: "My Token",
+  symbol: "MTK",
+  decimals: 8,
+  uris: { icon: "ipfs://bafybei...", web: "https://mytoken.example" },
+});
+
+// Host `JSON.stringify(doc)` at your bcmrUri, then compute its hash:
+const hash = hashBcmr(doc); // 64-char hex SHA-256
+
+const result = await mintFungibleToken(config, {
+  name: "My Token",
+  symbol: "MTK",
+  decimals: 8,
+  initialSupply: 21_000_000n,
+  bcmrUri: "https://mytoken.example/bcmr.json",
+  bcmrHash: hash, // → OP_RETURN BCMR <hash> <uri>
+});
+```
 
 ### Configuration
 
@@ -140,6 +169,8 @@ P2SH helpers (`p2shLockingBytecode`, `p2shRedeemBytecode`) and raw opcode consta
 | `encodeMetadata(metadata)` | Serialise metadata to a JSON string |
 | `createBatonRequest(overrides?)` | Build a `MintRequest` for a minting-baton output |
 | `isBatonRequest(req)` | Return `true` when a request carries a minting baton |
+| `generateBcmr(options)` | Build a spec-compliant [CHIP-BCMR v2](https://github.com/bitjson/chip-bcmr) JSON document from token identity inputs |
+| `hashBcmr(doc)` | Compute the SHA-256 content hash of a BCMR document; returns a 64-char hex string suitable for use as `TokenSchema.bcmrHash` |
 
 ### Fee Estimation Constants
 

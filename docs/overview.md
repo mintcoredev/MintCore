@@ -31,10 +31,10 @@ Wallet connectivity and UI belong in the application layer built on top of MintC
 MintCore
 ├── src/core/          Core minting engine and transaction builder
 ├── src/adapters/      Adapters bridging engine and libauth
-├── src/cashTokens/    CashTokens helpers (baton, category, metadata, mint)
+├── src/cashTokens/    CashTokens helpers (baton, category, metadata, mint, BCMR generator)
 ├── src/scripts/       Locking-bytecode builders (P2PKH, P2SH, OP_RETURN, burn)
 ├── src/transactions/  Transaction builders (mint, baton, send)
-├── src/types/         Shared TypeScript type definitions
+├── src/types/         Shared TypeScript type definitions (includes BCMR types)
 └── src/utils/         Utility functions (hex, keys, fees, validation)
 ```
 
