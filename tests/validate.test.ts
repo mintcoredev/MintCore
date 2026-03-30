@@ -231,4 +231,56 @@ describe("validateSchema", () => {
       })
     ).toThrow(MintCoreError);
   });
+
+  // ── bcmrHash validation ────────────────────────────────────────────────────
+
+  it("passes a valid bcmrHash (64 hex chars)", () => {
+    const validHash = "a".repeat(64);
+    expect(() =>
+      validateSchema({
+        name: "T",
+        symbol: "T",
+        decimals: 0,
+        initialSupply: 1n,
+        bcmrUri: "https://example.com/token.json",
+        bcmrHash: validHash,
+      })
+    ).not.toThrow();
+  });
+
+  it("throws MintCoreError for a bcmrHash shorter than 64 characters", () => {
+    expect(() =>
+      validateSchema({
+        name: "T",
+        symbol: "T",
+        decimals: 0,
+        initialSupply: 1n,
+        bcmrHash: "a".repeat(63),
+      })
+    ).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError for a bcmrHash longer than 64 characters", () => {
+    expect(() =>
+      validateSchema({
+        name: "T",
+        symbol: "T",
+        decimals: 0,
+        initialSupply: 1n,
+        bcmrHash: "a".repeat(65),
+      })
+    ).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError for a bcmrHash containing non-hex characters", () => {
+    expect(() =>
+      validateSchema({
+        name: "T",
+        symbol: "T",
+        decimals: 0,
+        initialSupply: 1n,
+        bcmrHash: "z".repeat(64),
+      })
+    ).toThrow(MintCoreError);
+  });
 });

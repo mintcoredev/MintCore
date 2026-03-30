@@ -18,4 +18,13 @@ export interface TokenSchema {
    * e.g. "ipfs://bafybei..." or "https://example.com/token.json"
    */
   bcmrUri?: string;
+  /**
+   * SHA-256 content hash of the BCMR document hosted at {@link bcmrUri},
+   * encoded as a 64-character lowercase hex string.
+   *
+   * When provided together with `bcmrUri` the hash is embedded in the
+   * OP_RETURN output (`OP_RETURN BCMR <hash> <uri>`) creating a hash-pinned
+   * authchain registration.  Compute this value with {@link hashBcmr}.
+   */
+  bcmrHash?: string;
 }

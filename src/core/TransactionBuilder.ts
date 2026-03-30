@@ -94,7 +94,7 @@ export class TransactionBuilder {
       this.buildTokenOutput(schema, lockingBytecode, genesisTxid, TOKEN_OUTPUT_DUST),
     ];
     if (schema.bcmrUri) {
-      outputs.push(this.buildBcmrOutput(schema.bcmrUri));
+      outputs.push(this.buildBcmrOutput(schema.bcmrUri, schema.bcmrHash));
     }
 
     const tx = {
@@ -224,7 +224,7 @@ export class TransactionBuilder {
       this.buildTokenOutput(schema, lockingBytecode, categoryHash, TOKEN_OUTPUT_DUST),
     ];
     if (schema.bcmrUri) {
-      outputs.push(this.buildBcmrOutput(schema.bcmrUri));
+      outputs.push(this.buildBcmrOutput(schema.bcmrUri, schema.bcmrHash));
     }
     if (change > DUST_THRESHOLD) {
       outputs.push({ lockingBytecode, valueSatoshis: BigInt(change) });
@@ -332,23 +332,25 @@ export class TransactionBuilder {
   /**
    * Build an OP_RETURN output carrying BCMR metadata.
    *
-   * Format: OP_RETURN <push "BCMR"> <push uri>
+   * Format without hash:  OP_RETURN <push "BCMR"> <push uri>
+   * Format with hash:     OP_RETURN <push "BCMR"> <push hash> <push uri>
    *
    * This follows the BCMR on-chain authchain convention:
    * https://github.com/bitjson/chip-bcmr
    */
-  private buildBcmrOutput(uri: string) {
+  private buildBcmrOutput(uri: string, hash?: string) {
     const uriBytes = new TextEncoder().encode(uri);
     if (uriBytes.length > MAX_BCMR_URI_BYTES) {
       throw new MintCoreError(
         `BCMR URI is too long: ${uriBytes.length} bytes (max ${MAX_BCMR_URI_BYTES} bytes)`
       );
     }
-    const lockingBytecode = new Uint8Array([
-      OP_RETURN,
-      ...encodeDataPush(BCMR_MARKER),
-      ...encodeDataPush(uriBytes),
-    ]);
-    return { lockingBytecode, valueSatoshis: 0n };
+    const parts: number[] = [OP_RETURN, ...encodeDataPush(BCMR_MARKER)];
+    if (hash !== undefined) {
+      const hashBytes = fromHex(hash);
+      parts.push(...encodeDataPush(hashBytes));
+    }
+    parts.push(...encodeDataPush(uriBytes));
+    return { lockingBytecode: new Uint8Array(parts), valueSatoshis: 0n };
   }
 }
