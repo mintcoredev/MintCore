@@ -89,12 +89,17 @@ export function validateSchema(schema: TokenSchema): void {
     }
   }
   if (schema.bcmrHash !== undefined) {
+    if (!schema.bcmrUri) {
+      throw new MintCoreError(
+        "bcmrHash requires bcmrUri to also be provided"
+      );
+    }
     if (
       typeof schema.bcmrHash !== "string" ||
-      !/^[0-9a-fA-F]{64}$/.test(schema.bcmrHash)
+      !/^[0-9a-f]{64}$/.test(schema.bcmrHash)
     ) {
       throw new MintCoreError(
-        "bcmrHash must be a 64-character hex string (SHA-256 content hash)"
+        "bcmrHash must be 64 lowercase hex characters"
       );
     }
   }

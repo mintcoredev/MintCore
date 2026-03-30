@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { generateBcmr, hashBcmr } from "../src/cashTokens/bcmrGenerator.js";
+import { validateSchema } from "../src/utils/validate.js";
 import { MintCoreError } from "../src/utils/errors.js";
 import type { BcmrGeneratorOptions } from "../src/types/BcmrTypes.js";
+import type { TokenSchema } from "../src/types/TokenSchema.js";
 
 /** A valid 64-char hex category used throughout the test suite. */
 const CATEGORY =
@@ -12,6 +14,13 @@ const BASE_OPTIONS: BcmrGeneratorOptions = {
   name: "Test Token",
   symbol: "TST",
   decimals: 8,
+};
+
+const BASE_SCHEMA: TokenSchema = {
+  name: "T",
+  symbol: "T",
+  decimals: 0,
+  initialSupply: 1n,
 };
 
 // ─── generateBcmr ────────────────────────────────────────────────────────────
@@ -172,4 +181,35 @@ describe("hashBcmr", () => {
     const doc2 = generateBcmr({ ...BASE_OPTIONS, category: cat2, timestamp: ts });
     expect(hashBcmr(doc1)).not.toBe(hashBcmr(doc2));
   });
+
+  it("is stable regardless of key order", () => {
+    const ts = "2024-01-01T00:00:00.000Z";
+    const a = generateBcmr({ ...BASE_OPTIONS, timestamp: ts });
+    // Construct the same document but with top-level keys in reverse alphabetical order
+    const b: typeof a = Object.assign(
+      Object.create(null),
+      Object.fromEntries(Object.entries(a).reverse())
+    ) as typeof a;
+    expect(hashBcmr(a)).toBe(hashBcmr(b));
+  });
+});
+
+// ─── Additional validation tests ─────────────────────────────────────────────
+
+it("rejects decimals outside 0–18", () => {
+  expect(() => generateBcmr({ ...BASE_OPTIONS, decimals: 19 }))
+    .toThrow(MintCoreError);
+});
+
+it("rejects invalid timestamp", () => {
+  expect(() => generateBcmr({ ...BASE_OPTIONS, timestamp: "not-a-date" }))
+    .toThrow(MintCoreError);
+});
+
+it("rejects bcmrHash without bcmrUri", () => {
+  expect(() => validateSchema({
+    ...BASE_SCHEMA,
+    bcmrHash: "a".repeat(64),
+    bcmrUri: undefined,
+  })).toThrow(MintCoreError);
 });

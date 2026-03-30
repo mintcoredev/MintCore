@@ -345,6 +345,13 @@ export class TransactionBuilder {
         `BCMR URI is too long: ${uriBytes.length} bytes (max ${MAX_BCMR_URI_BYTES} bytes)`
       );
     }
+    if (hash !== undefined) {
+      if (typeof hash !== "string" || !/^[0-9a-f]{64}$/.test(hash)) {
+        throw new MintCoreError(
+          "Invalid bcmrHash: must be 64 lowercase hex characters"
+        );
+      }
+    }
     const parts: number[] = [OP_RETURN, ...encodeDataPush(BCMR_MARKER)];
     if (hash !== undefined) {
       const hashBytes = fromHex(hash);
