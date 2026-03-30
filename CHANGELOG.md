@@ -9,12 +9,14 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ## [Unreleased]
 
-> All changes are internal hardening only; the public MintCore API and transaction formats are unchanged.
-
 ### Added
 
 - `generateKey()` — generates a cryptographically secure random 32-byte private key as a hex string.
 - `deriveAddress(privateKey, network)` — derives a P2PKH CashAddress from a private key for mainnet, testnet, or regtest.
+- **`generateBcmr(options)`** — builds a spec-compliant [CHIP-BCMR v2](https://github.com/bitjson/chip-bcmr) JSON document from token identity inputs. Exported from `mintcore`.
+- **`hashBcmr(doc)`** — computes the SHA-256 content hash of a BCMR document and returns it as a 64-character lowercase hex string. Use the result as `bcmrHash` in `TokenSchema` to create a hash-pinned authchain registration.
+- **`TokenSchema.bcmrHash`** — new optional field (`string`); a 64-hex-char SHA-256 hash of the BCMR document at `bcmrUri`. When set, `TransactionBuilder` emits `OP_RETURN BCMR <hash> <uri>` instead of the URI-only form.
+- **BCMR types** — `BcmrDocument`, `BcmrIdentitySnapshot`, `BcmrTokenRecord`, `BcmrVersion`, `BcmrGeneratorOptions` exported from `mintcore`.
 
 ### Changed
 
