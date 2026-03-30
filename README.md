@@ -1,8 +1,8 @@
 # MintCore
 
-A CashTokens minting engine for Bitcoin Cash, built on top of [@bitauth/libauth](https://github.com/bitauth/libauth).
+A CashTokens minting SDK for Bitcoin Cash, built on top of [@bitauth/libauth](https://github.com/bitauth/libauth).
 
-MintCore handles the full lifecycle of creating CashTokens on BCH: building and signing genesis transactions, managing minting batons, and estimating fees. It is pure TypeScript with no UI, no wallet integration, and no network client bundled in.
+MintCore handles the full lifecycle of creating CashTokens on BCH: building and signing genesis transactions, managing minting batons, and estimating fees. It is pure TypeScript with no UI, no wallet integration, and no network client bundled in. Wallet connectivity and UI belong in the application layer built on top of MintCore — the SDK itself is intentionally scope-limited to minting.
 
 ## What MintCore Does
 
@@ -164,7 +164,8 @@ Requires Node.js 18+ (ESM).
 
 ## What MintCore Does Not Include
 
-- Wallet UI or browser extension integration
-- React / Vue / any UI framework components
+- Wallet connectivity — no WalletConnect, browser extensions, or hardware wallet support
+- UI components — no React, Vue, or any framework code
 - A bundled network client — bring your own Chronik or ElectrumX URL
-- Key management or seed-phrase derivation beyond raw 32-byte private keys
+- Key management beyond raw 32-byte private key signing
+- On-chain querying beyond UTXO fetching for fee funding
