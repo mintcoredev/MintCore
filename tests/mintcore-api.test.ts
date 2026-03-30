@@ -19,6 +19,9 @@ import {
   verifyMint,
   createMetadata,
   encodeMetadata,
+  // ── BCMR metadata generator ─────────────────────────────────────────────────
+  generateBcmr,
+  hashBcmr,
   // ── validation ──────────────────────────────────────────────────────────────
   validateSchema,
   validateUtxo,
@@ -92,6 +95,14 @@ describe("api/mintcore – function exports", () => {
 
   it("encodeMetadata is a function", () => {
     expect(typeof encodeMetadata).toBe("function");
+  });
+
+  it("generateBcmr is a function", () => {
+    expect(typeof generateBcmr).toBe("function");
+  });
+
+  it("hashBcmr is a function", () => {
+    expect(typeof hashBcmr).toBe("function");
   });
 
   it("validateSchema is a function", () => {

@@ -181,6 +181,42 @@ describe("BCMR metadata attachment – offline build", () => {
     const result = await builder.build(schema);
     expect(result.hex).not.toContain("42434d52");
   });
+
+  it("includes hash push between marker and URI when bcmrHash is set", async () => {
+    const builder = new TransactionBuilder(baseConfig);
+    // A predictable 32-byte hash (all 0xab bytes → "abab...ab")
+    const bcmrHash = "ab".repeat(32);
+    const schema: TokenSchema = {
+      name: "Hash Token",
+      symbol: "HTOK",
+      decimals: 0,
+      initialSupply: 1n,
+      bcmrUri: "https://example.com/token.json",
+      bcmrHash,
+    };
+
+    const result = await builder.build(schema);
+    // Both the BCMR marker and the hash bytes must be present in the serialised tx
+    expect(result.hex).toContain("42434d52");
+    expect(result.hex).toContain(bcmrHash);
+  });
+
+  it("produces a longer hex with bcmrHash than without it", async () => {
+    const builder = new TransactionBuilder(baseConfig);
+    const bcmrHash = "cd".repeat(32);
+    const withoutHash: TokenSchema = {
+      name: "T",
+      symbol: "T",
+      decimals: 0,
+      initialSupply: 1n,
+      bcmrUri: "https://example.com/token.json",
+    };
+    const withHash: TokenSchema = { ...withoutHash, bcmrHash };
+
+    const resultWithout = await builder.build(withoutHash);
+    const resultWith = await builder.build(withHash);
+    expect(resultWith.hex.length).toBeGreaterThan(resultWithout.hex.length);
+  });
 });
 
 // ─── BCMR validation ──────────────────────────────────────────────────────────
