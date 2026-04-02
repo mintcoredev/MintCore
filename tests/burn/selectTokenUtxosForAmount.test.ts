@@ -59,7 +59,7 @@ describe("selectTokenUtxosForAmount", () => {
         makeUtxo("tx12", CAT_A, 20n),
       ];
       const { selected, total } = selectTokenUtxosForAmount(utxos, CAT_A, 70n);
-      // Sorted: 20, 30, 50 → needs 20+30+50 = 100 to reach 70? No: 20+30=50 < 70, 20+30+50=100 >= 70
+      // Sorted: 20, 30, 50 → selects 20+30+50=100 to meet 70
       expect(total).toBeGreaterThanOrEqual(70n);
       expect(selected.length).toBeGreaterThan(1);
     });

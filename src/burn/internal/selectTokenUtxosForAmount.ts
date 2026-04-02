@@ -41,7 +41,7 @@ export function selectTokenUtxosForAmount(
 
   // Sort ascending so we consume the smallest UTXOs first.
   candidates.sort((a, b) => {
-    const diff = (a.token!.amount ?? 0n) - (b.token!.amount ?? 0n);
+    const diff = a.token!.amount! - b.token!.amount!;
     return diff < 0n ? -1 : diff > 0n ? 1 : 0;
   });
 
