@@ -58,10 +58,5 @@ describe("estimateBurnFee", () => {
       // 10 + 148 + 0 = 158
       expect(estimateBurnFee(1, 0, 1)).toBe(158n);
     });
-
-    it("returns a bigint type", () => {
-      const result = estimateBurnFee(2, 3, 5);
-      expect(typeof result).toBe("bigint");
-    });
   });
 });

@@ -87,9 +87,9 @@ describe("selectBchUtxosForFee", () => {
       );
     });
 
-    it("error message includes required and available amounts", () => {
+    it("error message includes both required and available amounts", () => {
       const utxos = [makeUtxo("tx51", 50)];
-      expect(() => selectBchUtxosForFee(utxos, 200n)).toThrow(/200/);
+      expect(() => selectBchUtxosForFee(utxos, 200n)).toThrow(/200.*50|50.*200/);
     });
   });
 
