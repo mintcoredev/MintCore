@@ -1,6 +1,18 @@
 // Burn module types.
 export type { Utxo } from "../types/TransactionTypes.js";
 
+/** Optional token data that may be attached to a UTXO by an indexer. */
+export interface UtxoToken {
+  category?: string;
+  amount?: bigint;
+  nft?: { capability?: string };
+}
+
+/** Extended UTXO shape used by indexers that decorate UTXOs with token data. */
+export interface TokenUtxo extends import("../types/TransactionTypes.js").Utxo {
+  token?: UtxoToken;
+}
+
 /** A lightweight representation of an unsigned BCH transaction (pre-signing). */
 export interface UnsignedTransaction {
   /** Raw inputs referencing UTXOs to spend. */
