@@ -1,17 +1,6 @@
 // Category retirement check.
 import type { Utxo } from "../types/TransactionTypes.js";
-
-/** Optional token data that may be attached to a UTXO by indexer extensions. */
-interface UtxoToken {
-  category?: string;
-  amount?: bigint;
-  nft?: { capability?: string };
-}
-
-/** Extended UTXO shape used by indexers that decorate UTXOs with token data. */
-interface TokenUtxo extends Utxo {
-  token?: UtxoToken;
-}
+import type { TokenUtxo } from "./types.js";
 
 function isTokenUtxo(utxo: Utxo): utxo is TokenUtxo {
   return "token" in utxo;
