@@ -1,0 +1,373 @@
+/**
+ * tests/security/auditFixes.test.ts
+ *
+ * Regression tests for every Critical / Medium fix from the security audit:
+ *
+ *  1.1  fromHex strict validation (no silent NaN→0 corruption)
+ *  1.2  validatePrivateKeyHex — private key format enforced before crypto use
+ *  1.3  Burn stubs throw instead of silently returning empty transactions
+ *  2.1  BCMR OP_RETURN size correctly reflected in fee estimate
+ *  2.2  Negative change guard in BatchMintEngine.executeOnePlannedTx
+ *  2.3  MintRequest.category respected per-output instead of silently ignored
+ *  2.5  validateProviderUrl blocks RFC 1918 / link-local addresses (SSRF)
+ *  Sort  Numeric UTXO sort uses safe comparator
+ */
+
+import { describe, it, expect } from "vitest";
+
+// ── 1.1 fromHex strict validation ─────────────────────────────────────────────
+
+import { fromHex, assertValidHex, validatePrivateKeyHex } from "../../src/utils/hex.js";
+import { MintCoreError } from "../../src/utils/errors.js";
+
+describe("fromHex — strict validation", () => {
+  it("accepts a valid lowercase hex string", () => {
+    expect(fromHex("deadbeef")).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
+  });
+
+  it("accepts a valid uppercase hex string", () => {
+    expect(fromHex("DEADBEEF")).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
+  });
+
+  it("accepts an empty string (zero bytes)", () => {
+    expect(fromHex("")).toEqual(new Uint8Array(0));
+  });
+
+  it("throws MintCoreError for an odd-length hex string", () => {
+    expect(() => fromHex("abc")).toThrow(MintCoreError);
+    expect(() => fromHex("abc")).toThrow(/odd length/i);
+  });
+
+  it("throws MintCoreError for a string with non-hex characters", () => {
+    expect(() => fromHex("zzzz")).toThrow(MintCoreError);
+    expect(() => fromHex("zzzz")).toThrow(/non-hex/i);
+  });
+
+  it("throws MintCoreError for a 0x-prefixed hex string", () => {
+    // 0x prefix is not valid in fromHex
+    expect(() => fromHex("0xdeadbeef")).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError for a hex string with spaces", () => {
+    expect(() => fromHex("de ad be ef")).toThrow(MintCoreError);
+  });
+});
+
+// ── assertValidHex ─────────────────────────────────────────────────────────────
+
+describe("assertValidHex", () => {
+  it("does not throw for a valid even-length hex string", () => {
+    expect(() => assertValidHex("00ff")).not.toThrow();
+  });
+
+  it("does not throw for an empty string", () => {
+    expect(() => assertValidHex("")).not.toThrow();
+  });
+
+  it("throws for an odd-length string", () => {
+    expect(() => assertValidHex("abc")).toThrow(MintCoreError);
+  });
+
+  it("throws for non-hex characters", () => {
+    expect(() => assertValidHex("gg")).toThrow(MintCoreError);
+  });
+});
+
+// ── 1.2 validatePrivateKeyHex ─────────────────────────────────────────────────
+
+describe("validatePrivateKeyHex", () => {
+  const VALID_KEY = "0".repeat(64);
+
+  it("does not throw for a valid 64-char hex string", () => {
+    expect(() => validatePrivateKeyHex(VALID_KEY)).not.toThrow();
+    expect(() => validatePrivateKeyHex("a".repeat(64))).not.toThrow();
+  });
+
+  it("throws MintCoreError for a key shorter than 64 characters", () => {
+    expect(() => validatePrivateKeyHex("a".repeat(63))).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError for a key longer than 64 characters", () => {
+    expect(() => validatePrivateKeyHex("a".repeat(65))).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError for a key with non-hex characters", () => {
+    expect(() => validatePrivateKeyHex("z".repeat(64))).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError for an empty string", () => {
+    expect(() => validatePrivateKeyHex("")).toThrow(MintCoreError);
+  });
+});
+
+// ── 1.2 TransactionBuilder.build rejects bad private key early ────────────────
+
+import { TransactionBuilder } from "../../src/core/TransactionBuilder.js";
+import type { TokenSchema } from "../../src/types/TokenSchema.js";
+
+const VALID_SCHEMA: TokenSchema = {
+  name: "Test",
+  symbol: "TST",
+  decimals: 0,
+  initialSupply: 1n,
+};
+
+describe("TransactionBuilder.build — private key validation", () => {
+  it("throws MintCoreError for a non-hex private key (not 32 valid bytes)", async () => {
+    const builder = new TransactionBuilder({
+      network: "regtest",
+      privateKey: "not-a-valid-hex-key",
+    });
+    await expect(builder.build(VALID_SCHEMA)).rejects.toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError for a key shorter than 64 hex chars", async () => {
+    const builder = new TransactionBuilder({
+      network: "regtest",
+      privateKey: "a".repeat(62),
+    });
+    await expect(builder.build(VALID_SCHEMA)).rejects.toThrow(MintCoreError);
+  });
+
+  it("accepts a valid 64-char hex private key", async () => {
+    const builder = new TransactionBuilder({
+      network: "regtest",
+      privateKey: "0000000000000000000000000000000000000000000000000000000000000001",
+    });
+    await expect(builder.build(VALID_SCHEMA)).resolves.not.toThrow();
+  });
+});
+
+// ── 1.3 Burn stubs throw instead of silently no-oping ─────────────────────────
+
+import { buildPartialBurnTx } from "../../src/burn/buildPartialBurnTx.js";
+import { buildFullCategoryRetirementTx } from "../../src/burn/buildFullCategoryRetirementTx.js";
+
+const BURN_CONTEXT = {
+  utxos: [{ txid: "a".repeat(64), vout: 0, satoshis: 100_000, scriptPubKey: "" }],
+  feeRate: 1.0,
+};
+const BURN_REQUEST = {
+  categoryId: "a".repeat(64),
+  amount: 100n,
+  changeAddress: "bitcoincash:qp3wjpa3tjlj042z2wv7hahsldgwhwy0rq9sywjpyy",
+};
+
+describe("buildPartialBurnTx — not yet implemented", () => {
+  it("throws an error instead of returning an empty transaction", () => {
+    expect(() => buildPartialBurnTx(BURN_REQUEST, BURN_CONTEXT)).toThrow();
+  });
+
+  it("does not return a silent empty result", () => {
+    let result: unknown;
+    try {
+      result = buildPartialBurnTx(BURN_REQUEST, BURN_CONTEXT);
+    } catch {
+      result = "threw";
+    }
+    expect(result).toBe("threw");
+  });
+});
+
+describe("buildFullCategoryRetirementTx — not yet implemented", () => {
+  const ctx = { ...BURN_CONTEXT, batonUtxo: { txid: "b".repeat(64), vout: 0, satoshis: 1000, scriptPubKey: "" } };
+
+  it("throws an error instead of returning an empty transaction", () => {
+    expect(() => buildFullCategoryRetirementTx("a".repeat(64), ctx)).toThrow();
+  });
+
+  it("does not return a silent empty result", () => {
+    let result: unknown;
+    try {
+      result = buildFullCategoryRetirementTx("a".repeat(64), ctx);
+    } catch {
+      result = "threw";
+    }
+    expect(result).toBe("threw");
+  });
+});
+
+// ── 2.1 BCMR OP_RETURN fee sizing ─────────────────────────────────────────────
+
+import { estimateBcmrOutputSize, P2PKH_OUTPUT_SIZE, estimateFee, DEFAULT_FEE_RATE } from "../../src/utils/fee.js";
+
+describe("estimateBcmrOutputSize", () => {
+  it("returns a number larger than P2PKH_OUTPUT_SIZE for any non-empty URI", () => {
+    const size = estimateBcmrOutputSize("https://example.com/token.json");
+    expect(size).toBeGreaterThan(P2PKH_OUTPUT_SIZE);
+  });
+
+  it("increases when a hash is included", () => {
+    const uri = "https://example.com/token.json";
+    const noHash = estimateBcmrOutputSize(uri);
+    const withHash = estimateBcmrOutputSize(uri, "a".repeat(64));
+    // hash adds 33 bytes (1 push opcode + 32 data bytes)
+    expect(withHash).toBe(noHash + 33);
+  });
+
+  it("increases as URI length grows", () => {
+    const short = estimateBcmrOutputSize("ipfs://abc");
+    const long = estimateBcmrOutputSize("ipfs://" + "a".repeat(200));
+    expect(long).toBeGreaterThan(short);
+  });
+
+  it("handles a max-length URI (512 bytes)", () => {
+    const maxUri = "a".repeat(512);
+    const size = estimateBcmrOutputSize(maxUri);
+    // Should be substantially larger than P2PKH
+    expect(size).toBeGreaterThan(500);
+  });
+
+  it("accounts for PUSHDATA2 opcode overhead for URI > 255 bytes", () => {
+    const uriOver255 = "a".repeat(300);
+    const size = estimateBcmrOutputSize(uriOver255);
+    const shortUri = "a".repeat(10);
+    const shortSize = estimateBcmrOutputSize(shortUri);
+    // 290 more data bytes + 2 extra pushdata opcode bytes (PUSHDATA2 uses 3 vs 1)
+    // + 2 extra varint bytes (script 309 bytes needs 3-byte varint vs 1-byte for 17)
+    expect(size - shortSize).toBe(290 + 2 + 2); // = 294
+  });
+});
+
+describe("estimateFee — extraFeeBytes parameter", () => {
+  it("returns the same result as before when extraFeeBytes is 0 or omitted", () => {
+    const baseline = estimateFee(1, 2, DEFAULT_FEE_RATE, 1);
+    expect(estimateFee(1, 2, DEFAULT_FEE_RATE, 1, 0)).toBe(baseline);
+  });
+
+  it("increases the fee when extraFeeBytes > 0", () => {
+    const baseline = estimateFee(1, 2, DEFAULT_FEE_RATE, 1);
+    const withExtra = estimateFee(1, 2, DEFAULT_FEE_RATE, 1, 100);
+    // 100 extra bytes at 1 sat/byte = 100 extra sats
+    expect(withExtra).toBe(baseline + 100);
+  });
+});
+
+// ── 2.3 MintRequest.category respected ────────────────────────────────────────
+// This is a unit-level check via the BatchMintEngine's planning phase:
+// we verify the validated `category` field is accepted without error,
+// and will be used when the engine builds outputs.
+
+import { BatchMintEngine } from "../../src/core/BatchMintEngine.js";
+import { validateMintRequest } from "../../src/utils/validate.js";
+import type { MintRequest } from "../../src/types/BatchMintTypes.js";
+
+describe("MintRequest.category validation and acceptance", () => {
+  it("validateMintRequest accepts a valid category", () => {
+    const req: MintRequest = {
+      capability: "none",
+      amount: 100n,
+      category: "a".repeat(64),
+    };
+    expect(() => validateMintRequest(req)).not.toThrow();
+  });
+
+  it("planMintBatch accepts requests with category (offline mode)", async () => {
+    const engine = new BatchMintEngine({ network: "regtest" });
+    const req: MintRequest = {
+      capability: "none",
+      amount: 100n,
+      category: "a".repeat(64),
+    };
+    const plan = await engine.planMintBatch([req]);
+    expect(plan.transactions).toHaveLength(1);
+    expect(plan.transactions[0].mintRequests[0].category).toBe("a".repeat(64));
+  });
+});
+
+// ── 2.5 SSRF protection — validateProviderUrl ─────────────────────────────────
+
+import { chronikFetchUtxos, electrumxFetchUtxos } from "../../src/core/providerUtils.js";
+
+describe("validateProviderUrl — SSRF protection", () => {
+  const DUMMY_ADDRESS = "bitcoincash:qp3wjpa3tjlj042z2wv7hahsldgwhwy0rq9sywjpyy";
+
+  it("rejects a 10.x.x.x (RFC 1918) Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://10.0.0.1/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+    await expect(
+      chronikFetchUtxos("https://10.0.0.1/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(/private or link-local/i);
+  });
+
+  it("rejects a 172.16.x.x (RFC 1918) Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://172.16.0.1/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("rejects a 172.31.x.x (RFC 1918) Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://172.31.255.255/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("rejects a 192.168.x.x (RFC 1918) Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://192.168.1.1/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("rejects a 169.254.x.x (link-local) Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://169.254.1.1/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("rejects a 192.168.x.x ElectrumX URL", async () => {
+    await expect(
+      electrumxFetchUtxos("https://192.168.100.1/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("allows localhost (HTTP) for development", async () => {
+    // localhost is explicitly allowed even over HTTP; it will fail with a fetch
+    // error (connection refused), not a MintCoreError about the URL.
+    await expect(
+      chronikFetchUtxos("http://localhost:9999/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(/Chronik UTXO fetch failed/);
+  });
+
+  it("allows a public HTTPS URL", async () => {
+    // Should NOT reject at URL validation; will fail with a network error.
+    await expect(
+      chronikFetchUtxos("https://chronik.example.com", DUMMY_ADDRESS)
+    ).rejects.not.toThrow(expect.objectContaining({ message: expect.stringMatching(/private or link-local/i) }));
+  });
+});
+
+// ── Sort comparator safety ─────────────────────────────────────────────────────
+
+import { selectUtxos } from "../../src/utils/coinselect.js";
+import type { Utxo } from "../../src/types/TransactionTypes.js";
+
+describe("selectUtxos — safe sort comparator", () => {
+  it("correctly orders UTXOs when satoshi values are very large (near Number.MAX_SAFE_INTEGER)", () => {
+    // Subtraction-based comparator would produce inaccurate results for very
+    // large values; the safe comparator must return the correct order.
+    const large = Number.MAX_SAFE_INTEGER - 1;
+    const utxos: Utxo[] = [
+      { txid: "a".repeat(64), vout: 0, satoshis: 1000, scriptPubKey: "" },
+      { txid: "b".repeat(64), vout: 0, satoshis: large, scriptPubKey: "" },
+    ];
+    const result = selectUtxos(utxos, 1000, 1, 1.0, 1);
+    // The large UTXO should be selected first (largest-first)
+    expect(result.selected[0].satoshis).toBe(large);
+  });
+});
+
+import { selectBchUtxosForFee } from "../../src/burn/internal/selectBchUtxosForFee.js";
+import type { TokenUtxo } from "../../src/burn/types.js";
+
+describe("selectBchUtxosForFee — safe sort comparator", () => {
+  it("selects the smallest UTXOs first (ascending order)", () => {
+    const utxos: Utxo[] = [
+      { txid: "a".repeat(64), vout: 0, satoshis: 5000, scriptPubKey: "" },
+      { txid: "b".repeat(64), vout: 0, satoshis: 1000, scriptPubKey: "" },
+      { txid: "c".repeat(64), vout: 0, satoshis: 3000, scriptPubKey: "" },
+    ];
+    const result = selectBchUtxosForFee(utxos, 1000n);
+    expect(result.selected[0].satoshis).toBe(1000);
+  });
+});

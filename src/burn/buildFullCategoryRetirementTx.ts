@@ -51,6 +51,5 @@ export function buildFullCategoryRetirementTx(
   // TODO: Assemble and return the UnsignedTransaction.
   //       Verify that no token field appears on any output (full burn).
 
-  // Placeholder — replace with real implementation.
-  return { inputs: [], outputs: [] };
+  throw new Error("buildFullCategoryRetirementTx is not yet implemented");
 }

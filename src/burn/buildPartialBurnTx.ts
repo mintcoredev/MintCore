@@ -48,6 +48,5 @@ export function buildPartialBurnTx(
   // TODO: Build and return the UnsignedTransaction by assembling the
   //       selected inputs and the computed outputs.
 
-  // Placeholder — replace with real implementation.
-  return { inputs: [], outputs: [] };
+  throw new Error("buildPartialBurnTx is not yet implemented");
 }
