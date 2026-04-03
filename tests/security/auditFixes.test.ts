@@ -85,14 +85,17 @@ describe("validatePrivateKeyHex", () => {
 
   it("throws MintCoreError for a key shorter than 64 characters", () => {
     expect(() => validatePrivateKeyHex("a".repeat(63))).toThrow(MintCoreError);
+    expect(() => validatePrivateKeyHex("a".repeat(63))).toThrow(/64 hex characters/i);
   });
 
   it("throws MintCoreError for a key longer than 64 characters", () => {
     expect(() => validatePrivateKeyHex("a".repeat(65))).toThrow(MintCoreError);
+    expect(() => validatePrivateKeyHex("a".repeat(65))).toThrow(/64 hex characters/i);
   });
 
   it("throws MintCoreError for a key with non-hex characters", () => {
     expect(() => validatePrivateKeyHex("z".repeat(64))).toThrow(MintCoreError);
+    expect(() => validatePrivateKeyHex("z".repeat(64))).toThrow(/non-hex/i);
   });
 
   it("throws MintCoreError for an empty string", () => {
@@ -223,9 +226,11 @@ describe("estimateBcmrOutputSize", () => {
     const size = estimateBcmrOutputSize(uriOver255);
     const shortUri = "a".repeat(10);
     const shortSize = estimateBcmrOutputSize(shortUri);
-    // 290 more data bytes + 2 extra pushdata opcode bytes (PUSHDATA2 uses 3 vs 1)
-    // + 2 extra varint bytes (script 309 bytes needs 3-byte varint vs 1-byte for 17)
-    expect(size - shortSize).toBe(290 + 2 + 2); // = 294
+    // Expected difference: 294 bytes
+    //   290 extra data bytes (300 vs 10)
+    //   + 2 extra opcode bytes (PUSHDATA2 uses 3-byte overhead vs 1 for short URI)
+    //   + 2 extra varint bytes (script ~309 bytes needs 3-byte varint vs 1-byte for 17)
+    expect(size - shortSize).toBe(294);
   });
 });
 
@@ -322,11 +327,16 @@ describe("validateProviderUrl — SSRF protection", () => {
   });
 
   it("allows localhost (HTTP) for development", async () => {
-    // localhost is explicitly allowed even over HTTP; it will fail with a fetch
-    // error (connection refused), not a MintCoreError about the URL.
+    // localhost is explicitly allowed even over HTTP; it will fail at the
+    // network layer (connection refused / ECONNREFUSED), not with a MintCoreError
+    // about the URL.  We just verify the rejection is NOT a URL-validation error.
+    const rejection = chronikFetchUtxos("http://localhost:9999/api", DUMMY_ADDRESS);
+    await expect(rejection).rejects.toThrow();
     await expect(
       chronikFetchUtxos("http://localhost:9999/api", DUMMY_ADDRESS)
-    ).rejects.toThrow(/Chronik UTXO fetch failed/);
+    ).rejects.not.toThrow(
+      expect.objectContaining({ message: expect.stringMatching(/must use HTTPS/i) })
+    );
   });
 
   it("allows a public HTTPS URL", async () => {

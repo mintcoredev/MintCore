@@ -42,9 +42,14 @@ export const fromHex = (hex: string): Uint8Array => {
  * mixed-case hex string (i.e. a 32-byte private key).
  */
 export function validatePrivateKeyHex(key: string): void {
-  if (key.length !== 64 || !HEX_REGEX.test(key)) {
+  if (key.length !== 64) {
     throw new MintCoreError(
-      "Invalid private key: expected a 64-character hex string (32 bytes)"
+      `Invalid private key: expected 64 hex characters (32 bytes), got ${key.length}`
+    );
+  }
+  if (!HEX_REGEX.test(key)) {
+    throw new MintCoreError(
+      "Invalid private key: contains non-hex characters"
     );
   }
 }
