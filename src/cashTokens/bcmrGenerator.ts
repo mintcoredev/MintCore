@@ -50,8 +50,15 @@ export function generateBcmr(options: BcmrGeneratorOptions): BcmrDocument {
 
   // Validate timestamp
   if (options.timestamp !== undefined) {
-    if (isNaN(Date.parse(options.timestamp))) {
+    const parsed = Date.parse(options.timestamp);
+    if (isNaN(parsed)) {
       throw new MintCoreError("timestamp must be a valid ISO 8601 string");
+    }
+    const maxFutureMs = 24 * 60 * 60 * 1000; // 24 hours
+    if (parsed > Date.now() + maxFutureMs) {
+      throw new MintCoreError(
+        "timestamp must not be more than 24 hours in the future"
+      );
     }
   }
 
