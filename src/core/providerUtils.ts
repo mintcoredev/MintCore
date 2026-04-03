@@ -23,6 +23,21 @@ function validateProviderUrl(url: string, name: string): string {
       `${name} provider URL must use HTTPS (or localhost for development)`
     );
   }
+  // Block RFC 1918 and link-local ranges to reduce SSRF risk.
+  // 10.0.0.0/8 · 172.16.0.0/12 · 192.168.0.0/16 · 169.254.0.0/16
+  if (!isLocal) {
+    const h = parsed.hostname;
+    const privateRange =
+      /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h) ||
+      /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(h) ||
+      /^192\.168\.\d{1,3}\.\d{1,3}$/.test(h) ||
+      /^169\.254\.\d{1,3}\.\d{1,3}$/.test(h);
+    if (privateRange) {
+      throw new MintCoreError(
+        `${name} provider URL must not target a private or link-local IP address`
+      );
+    }
+  }
   return parsed.toString().replace(/\/+$/, "");
 }
 
@@ -103,6 +118,20 @@ function electrumxBaseUrl(rawUrl: string): string {
     throw new MintCoreError(
       "ElectrumX provider URL must use HTTPS (or localhost for development)"
     );
+  }
+  // Block RFC 1918 and link-local ranges to reduce SSRF risk.
+  if (!isLocal) {
+    const h = parsed.hostname;
+    const privateRange =
+      /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h) ||
+      /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(h) ||
+      /^192\.168\.\d{1,3}\.\d{1,3}$/.test(h) ||
+      /^169\.254\.\d{1,3}\.\d{1,3}$/.test(h);
+    if (privateRange) {
+      throw new MintCoreError(
+        "ElectrumX provider URL must not target a private or link-local IP address"
+      );
+    }
   }
   return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
 }

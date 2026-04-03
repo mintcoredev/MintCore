@@ -21,8 +21,10 @@ export function selectBchUtxosForFee(
   utxos: Utxo[],
   required: bigint,
 ): { selected: Utxo[]; total: bigint } {
-  // Sort ascending so we consume the smallest UTXOs first.
-  const candidates = [...utxos].sort((a, b) => a.satoshis - b.satoshis);
+  // Sort ascending so we consume the smallest UTXOs first (safe comparator avoids subtraction overflow).
+  const candidates = [...utxos].sort((a, b) =>
+    a.satoshis < b.satoshis ? -1 : a.satoshis > b.satoshis ? 1 : 0
+  );
 
   const selected: Utxo[] = [];
   let total = 0n;

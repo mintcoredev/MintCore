@@ -25,20 +25,25 @@ export interface CoinSelectResult {
  * @param numNonChangeOutputs - number of outputs excluding change
  * @param feeRate             - sat/byte
  * @param numTokenOutputs     - number of outputs carrying a CashToken (each adds TOKEN_PREFIX_OVERHEAD)
+ * @param extraFeeBytes       - additional bytes to add to the size estimate for every fee computation
+ *                              (e.g. the extra size of a variable-length OP_RETURN output)
  */
 export function selectUtxos(
   utxos: Utxo[],
   requiredOutput: number,
   numNonChangeOutputs: number,
   feeRate: number,
-  numTokenOutputs: number
+  numTokenOutputs: number,
+  extraFeeBytes: number = 0
 ): CoinSelectResult {
   if (utxos.length === 0) {
     throw new MintCoreError("No UTXOs available for coin selection");
   }
 
-  // Sort largest-first for greedy selection
-  const sorted = [...utxos].sort((a, b) => b.satoshis - a.satoshis);
+  // Sort largest-first for greedy selection (safe comparator avoids subtraction overflow)
+  const sorted = [...utxos].sort((a, b) =>
+    a.satoshis < b.satoshis ? 1 : a.satoshis > b.satoshis ? -1 : 0
+  );
 
   const selected: Utxo[] = [];
   let totalInput = 0;
@@ -49,11 +54,11 @@ export function selectUtxos(
 
     // Recompute fee with the current number of selected inputs.
     // Include a change output in the estimate only if we might have change.
-    const feeWithoutChange = estimateFee(selected.length, numNonChangeOutputs, feeRate, numTokenOutputs);
+    const feeWithoutChange = estimateFee(selected.length, numNonChangeOutputs, feeRate, numTokenOutputs, extraFeeBytes);
     const possibleChange = totalInput - requiredOutput - feeWithoutChange;
     const numOutputs = numNonChangeOutputs + (possibleChange > DUST_THRESHOLD ? 1 : 0);
     const fee = numOutputs > numNonChangeOutputs
-      ? estimateFee(selected.length, numOutputs, feeRate, numTokenOutputs)
+      ? estimateFee(selected.length, numOutputs, feeRate, numTokenOutputs, extraFeeBytes)
       : feeWithoutChange;
 
     if (totalInput >= requiredOutput + fee) {

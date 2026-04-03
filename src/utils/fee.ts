@@ -44,19 +44,61 @@ export const DEFAULT_FEE_RATE = 1.0;
  * @param feeRate         - sat/byte (default: 1.0)
  * @param numTokenOutputs - number of outputs carrying a CashToken (each adds
  *                          TOKEN_PREFIX_OVERHEAD bytes); defaults to 1
+ * @param extraFeeBytes   - additional bytes to include in the size estimate
+ *                          (e.g. the overhead of a variable-length OP_RETURN
+ *                          output that is larger than P2PKH_OUTPUT_SIZE)
  */
 export function estimateFee(
   numInputs: number,
   numOutputs: number,
   feeRate: number = DEFAULT_FEE_RATE,
-  numTokenOutputs: number = 1
+  numTokenOutputs: number = 1,
+  extraFeeBytes: number = 0
 ): number {
   const size =
     TX_OVERHEAD +
     numInputs * P2PKH_INPUT_SIZE +
     numOutputs * P2PKH_OUTPUT_SIZE +
-    numTokenOutputs * TOKEN_PREFIX_OVERHEAD;
+    numTokenOutputs * TOKEN_PREFIX_OVERHEAD +
+    extraFeeBytes;
   return Math.ceil(size * feeRate);
+}
+
+/**
+ * Estimate the serialized byte size of a BCMR OP_RETURN output.
+ *
+ * Format without hash:  OP_RETURN <push "BCMR"> <push uri>
+ * Format with hash:     OP_RETURN <push "BCMR"> <push 32-byte-hash> <push uri>
+ *
+ * The returned value is the full serialized output size including the 8-byte
+ * value field and the script-length varint.
+ *
+ * @param uri  - BCMR URI string (UTF-8 encoded on-chain).
+ * @param hash - Optional 32-byte hash as a 64-char hex string.
+ */
+export function estimateBcmrOutputSize(uri: string, hash?: string): number {
+  const uriLen = new TextEncoder().encode(uri).length;
+
+  // OP_RETURN (1 byte) + pushdata for 4-byte BCMR marker (1 + 4 = 5 bytes)
+  let scriptLen = 1 + 5;
+
+  // Optional 32-byte hash pushdata (1 push opcode + 32 bytes = 33 bytes)
+  if (hash !== undefined) {
+    scriptLen += 33;
+  }
+
+  // URI pushdata: opcode overhead depends on length
+  if (uriLen <= 75) {
+    scriptLen += 1 + uriLen;
+  } else if (uriLen <= 255) {
+    scriptLen += 2 + uriLen; // OP_PUSHDATA1 (1) + len (1) + data
+  } else {
+    scriptLen += 3 + uriLen; // OP_PUSHDATA2 (1) + len (2) + data
+  }
+
+  // Output: 8 bytes (value) + varint(scriptLen) + scriptLen
+  const varintLen = scriptLen < 0xfd ? 1 : scriptLen < 0x10000 ? 3 : 5;
+  return 8 + varintLen + scriptLen;
 }
 
 /**

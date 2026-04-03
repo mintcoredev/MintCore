@@ -14,9 +14,11 @@ import { MintConfig } from "../types/MintConfig.js";
 import { TokenSchema } from "../types/TokenSchema.js";
 import { Utxo, BuiltTransaction } from "../types/TransactionTypes.js";
 import { MintCoreError } from "../utils/errors.js";
-import { fromHex, toHex } from "../utils/hex.js";
+import { fromHex, toHex, validatePrivateKeyHex } from "../utils/hex.js";
 import {
   estimateFee,
+  estimateBcmrOutputSize,
+  P2PKH_OUTPUT_SIZE,
   DEFAULT_FEE_RATE,
   TOKEN_OUTPUT_DUST,
   DUST_THRESHOLD,
@@ -49,6 +51,9 @@ export class TransactionBuilder {
         "No signing credentials configured. Provide `privateKey` in MintConfig."
       );
     }
+
+    // Validate key format before any cryptographic use.
+    validatePrivateKeyHex(this.config.privateKey);
 
     const privKeyBin = fromHex(this.config.privateKey);
     const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
@@ -200,12 +205,21 @@ export class TransactionBuilder {
     // Non-change outputs: token output + optional BCMR OP_RETURN
     const nonChangeOutputCount = 1 + (schema.bcmrUri ? 1 : 0);
 
+    // The BCMR OP_RETURN output is not a standard P2PKH output (34 bytes); its
+    // actual size varies with the URI and hash length.  Compute the extra bytes
+    // beyond P2PKH_OUTPUT_SIZE so that selectUtxos can account for them in the
+    // fee estimate.
+    const bcmrExtraBytes = schema.bcmrUri
+      ? Math.max(0, estimateBcmrOutputSize(schema.bcmrUri, schema.bcmrHash) - P2PKH_OUTPUT_SIZE)
+      : 0;
+
     const { selected, fee, change } = selectUtxos(
       utxos,
       TOKEN_OUTPUT_DUST,
       nonChangeOutputCount,
       feeRate,
-      1
+      1,
+      bcmrExtraBytes
     );
 
     // Sort selected UTXOs lexicographically by txid then vout for deterministic

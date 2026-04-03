@@ -21,7 +21,7 @@ import type {
   MintExecutionResult,
 } from "../types/BatchMintTypes.js";
 import { MintCoreError } from "../utils/errors.js";
-import { fromHex, toHex } from "../utils/hex.js";
+import { fromHex, toHex, validatePrivateKeyHex } from "../utils/hex.js";
 import {
   estimateBatchTxFee,
   estimateBatchTxSize,
@@ -158,8 +158,10 @@ export class BatchMintEngine {
           "Insufficient funds: no spendable UTXOs found (all UTXOs are below the dust threshold or the wallet is empty)"
         );
       }
-      // Largest-first for greedy selection
-      allUtxos.sort((a, b) => b.satoshis - a.satoshis);
+      // Largest-first for greedy selection (safe comparator avoids subtraction overflow)
+      allUtxos.sort((a, b) =>
+        a.satoshis < b.satoshis ? 1 : a.satoshis > b.satoshis ? -1 : 0
+      );
     }
 
     const chunks: MintRequest[][] = [];
@@ -266,6 +268,8 @@ export class BatchMintEngine {
         "No signing credentials configured. Provide `privateKey` in MintConfig."
       );
     }
+    // Validate key format before any cryptographic use.
+    validatePrivateKeyHex(this.config.privateKey);
     if (!this.hasProvider) {
       throw new MintCoreError(
         "Execution requires a UTXO provider. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
@@ -355,7 +359,9 @@ export class BatchMintEngine {
       const available = this.lock
         .filterUnlocked(freshUtxos)
         .filter((u) => u.satoshis > DUST_THRESHOLD)
-        .sort((a, b) => b.satoshis - a.satoshis);
+        .sort((a, b) =>
+          a.satoshis < b.satoshis ? 1 : a.satoshis > b.satoshis ? -1 : 0
+        );
       const result = this.selectForBatch(
         available,
         plannedTx.mintRequests.length,
@@ -376,19 +382,29 @@ export class BatchMintEngine {
     // Derive the token category from the first input's outpoint
     const categoryHash = fromHex(sortedInputs[0].txid).reverse();
 
-    // Build token outputs
+    // Build token outputs; respect per-request category overrides when provided
     const outputs: RawTx["outputs"] = [];
     for (const req of plannedTx.mintRequests) {
       const recipientLocking = req.recipientAddress
         ? this.decodeAddressToLocking(req.recipientAddress)
         : lockingBytecode;
-      outputs.push(this.buildMintOutput(req, recipientLocking, categoryHash));
+      const outputCategory = req.category
+        ? fromHex(req.category).reverse()
+        : categoryHash;
+      outputs.push(this.buildMintOutput(req, recipientLocking, outputCategory));
     }
 
     // Change output
     const totalInput = sortedInputs.reduce((s, u) => s + u.satoshis, 0);
     const totalTokenDust = plannedTx.mintRequests.length * TOKEN_OUTPUT_DUST;
     const change = totalInput - totalTokenDust - plannedTx.estimatedFee;
+
+    if (change < 0) {
+      throw new MintCoreError(
+        `Fee exceeds available input value for transaction ${plannedTx.index}`
+      );
+    }
+
     if (change > DUST_THRESHOLD) {
       outputs.push({ lockingBytecode, valueSatoshis: BigInt(change) });
     }
@@ -434,7 +450,9 @@ export class BatchMintEngine {
       );
     }
 
-    const sorted = [...utxos].sort((a, b) => b.satoshis - a.satoshis);
+    const sorted = [...utxos].sort((a, b) =>
+      a.satoshis < b.satoshis ? 1 : a.satoshis > b.satoshis ? -1 : 0
+    );
     const requiredDust = numTokenOutputs * TOKEN_OUTPUT_DUST;
 
     const selected: Utxo[] = [];
