@@ -112,6 +112,15 @@ export interface PlannedTransaction {
  *
  * Inspect the plan before calling `executeMintBatch` to review estimated
  * costs and to display a confirmation UI.
+ *
+ * **Important — in-memory locks only.** The UTXOs allocated to each
+ * {@link PlannedTransaction} are locked in memory for the lifetime of the
+ * `BatchMintEngine` instance.  These locks are **not persisted** to disk.  If
+ * the process is restarted, or if a new `BatchMintEngine` instance is created,
+ * all lock state is lost and the same UTXOs could be selected again by a
+ * subsequent `planMintBatch` call.  To avoid double-spend scenarios across
+ * restarts, serialise the `BatchMintPlan` to durable storage immediately after
+ * planning and restore it before calling `executeMintBatch`.
  */
 export interface BatchMintPlan {
   /** Ordered list of planned transactions, one per chunk of mint requests. */

@@ -10,6 +10,8 @@
  *  2.2  Negative change guard in BatchMintEngine.executeOnePlannedTx
  *  2.3  MintRequest.category respected per-output instead of silently ignored
  *  2.5  validateProviderUrl blocks RFC 1918 / link-local addresses (SSRF)
+ *  3.1  Broadcast parsers throw MintCoreError when txid is absent from response
+ *  3.2  BCMR timestamp rejects values more than 24 h in the future
  *  Sort  Numeric UTXO sort uses safe comparator
  */
 
@@ -379,5 +381,119 @@ describe("selectBchUtxosForFee — safe sort comparator", () => {
     ];
     const result = selectBchUtxosForFee(utxos, 1000n);
     expect(result.selected[0].satoshis).toBe(1000);
+  });
+});
+
+// ── 3.1 Broadcast parsers throw when txid is absent ───────────────────────────
+
+// We unit-test the parsing logic by mocking fetch to return responses that
+// contain no recognised txid field, then asserting a MintCoreError is thrown.
+
+import { chronikBroadcast, electrumxBroadcast } from "../../src/core/providerUtils.js";
+
+describe("chronikBroadcast — missing txid throws MintCoreError", () => {
+  it("throws when the response body contains no txid or txids field", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+    await expect(
+      chronikBroadcast("https://chronik.example.com", "aa".repeat(250))
+    ).rejects.toThrow(MintCoreError);
+    await expect(
+      chronikBroadcast("https://chronik.example.com", "aa".repeat(250))
+    ).rejects.toThrow(/did not contain a txid/i);
+  });
+
+  it("throws when txids array is empty", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ txids: [] }), { status: 200 });
+    await expect(
+      chronikBroadcast("https://chronik.example.com", "aa".repeat(250))
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("does not throw when a valid txid is returned", async () => {
+    const fakeTxid = "cc".repeat(32);
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ txids: [fakeTxid] }), { status: 200 });
+    await expect(
+      chronikBroadcast("https://chronik.example.com", "aa".repeat(250))
+    ).resolves.toBe(fakeTxid);
+  });
+});
+
+describe("electrumxBroadcast — missing txid throws MintCoreError", () => {
+  it("throws when the response body contains no txid or result field", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+    await expect(
+      electrumxBroadcast("https://electrumx.example.com", "aa".repeat(250))
+    ).rejects.toThrow(MintCoreError);
+    await expect(
+      electrumxBroadcast("https://electrumx.example.com", "aa".repeat(250))
+    ).rejects.toThrow(/did not contain a txid/i);
+  });
+
+  it("does not throw when txid is returned as a bare string", async () => {
+    const fakeTxid = "dd".repeat(32);
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify(fakeTxid), { status: 200 });
+    await expect(
+      electrumxBroadcast("https://electrumx.example.com", "aa".repeat(250))
+    ).resolves.toBe(fakeTxid);
+  });
+
+  it("does not throw when txid is in data.txid", async () => {
+    const fakeTxid = "ee".repeat(32);
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ txid: fakeTxid }), { status: 200 });
+    await expect(
+      electrumxBroadcast("https://electrumx.example.com", "aa".repeat(250))
+    ).resolves.toBe(fakeTxid);
+  });
+});
+
+// ── 3.2 BCMR timestamp rejects far-future values ──────────────────────────────
+
+import { generateBcmr } from "../../src/cashTokens/bcmrGenerator.js";
+
+const BCMR_CATEGORY = "a".repeat(64);
+
+describe("generateBcmr — timestamp bounds check", () => {
+  const MAX_FUTURE_HOURS = 24;
+
+  it("accepts a past timestamp", () => {
+    const past = "2024-01-01T00:00:00.000Z";
+    expect(() =>
+      generateBcmr({ category: BCMR_CATEGORY, name: "T", timestamp: past })
+    ).not.toThrow();
+  });
+
+  it("accepts the current time (no timestamp supplied)", () => {
+    expect(() =>
+      generateBcmr({ category: BCMR_CATEGORY, name: "T" })
+    ).not.toThrow();
+  });
+
+  it("accepts a timestamp up to 24 h in the future", () => {
+    const nearFuture = new Date(Date.now() + (MAX_FUTURE_HOURS - 1) * 60 * 60 * 1000).toISOString();
+    expect(() =>
+      generateBcmr({ category: BCMR_CATEGORY, name: "T", timestamp: nearFuture })
+    ).not.toThrow();
+  });
+
+  it("throws MintCoreError for a timestamp more than 24 h in the future", () => {
+    const farFuture = new Date(Date.now() + (MAX_FUTURE_HOURS + 1) * 60 * 60 * 1000).toISOString();
+    expect(() =>
+      generateBcmr({ category: BCMR_CATEGORY, name: "T", timestamp: farFuture })
+    ).toThrow(MintCoreError);
+    expect(() =>
+      generateBcmr({ category: BCMR_CATEGORY, name: "T", timestamp: farFuture })
+    ).toThrow(/more than 24 hours in the future/i);
+  });
+
+  it("throws for a timestamp years in the future", () => {
+    expect(() =>
+      generateBcmr({ category: BCMR_CATEGORY, name: "T", timestamp: "2099-01-01T00:00:00.000Z" })
+    ).toThrow(MintCoreError);
   });
 });

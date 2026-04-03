@@ -9,6 +9,10 @@ import type { BurnRequest, BurnContext, UnsignedTransaction } from "./types.js";
  * @param burn - Specifies the category, amount to burn, and change address.
  * @param ctx  - Provides the available UTXO set and fee parameters.
  * @returns    An unsigned transaction ready for signing.
+ *
+ * @experimental This function is a planned API stub and is **not yet
+ * implemented**. Calling it will always throw an `Error` at runtime until a
+ * future release provides a full implementation. Do not use in production.
  */
 export function buildPartialBurnTx(
   burn: BurnRequest,

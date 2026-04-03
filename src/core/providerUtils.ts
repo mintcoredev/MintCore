@@ -94,7 +94,13 @@ export async function chronikBroadcast(
       );
     }
     const data = (await res.json()) as any;
-    return data.txids?.[0] ?? data.txid ?? "";
+    const txid: string | undefined = data.txids?.[0] ?? data.txid;
+    if (!txid) {
+      throw new MintCoreError(
+        "Chronik broadcast response did not contain a txid"
+      );
+    }
+    return txid;
   } catch (err: any) {
     if (err instanceof MintCoreError) throw err;
     throw new MintCoreError(
@@ -200,7 +206,13 @@ export async function electrumxBroadcast(
     }
     const data = (await res.json()) as any;
     if (typeof data === "string") return data;
-    return data.txid ?? data.result ?? "";
+    const txid: string | undefined = data.txid ?? data.result;
+    if (!txid) {
+      throw new MintCoreError(
+        "ElectrumX broadcast response did not contain a txid"
+      );
+    }
+    return txid;
   } catch (err: any) {
     if (err instanceof MintCoreError) throw err;
     throw new MintCoreError(

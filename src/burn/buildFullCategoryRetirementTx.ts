@@ -17,6 +17,10 @@ export type RetirementContext = BurnContext & { batonUtxo: Utxo };
  * @param categoryId - Token category ID (hex) to retire.
  * @param ctx        - Provides UTXOs (including the baton) and fee parameters.
  * @returns          An unsigned transaction ready for signing.
+ *
+ * @experimental This function is a planned API stub and is **not yet
+ * implemented**. Calling it will always throw an `Error` at runtime until a
+ * future release provides a full implementation. Do not use in production.
  */
 export function buildFullCategoryRetirementTx(
   categoryId: string,
