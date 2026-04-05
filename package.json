@@ -28,7 +28,7 @@
     "@bitauth/libauth": "3.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.2"
