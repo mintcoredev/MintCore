@@ -1,6 +1,7 @@
 // Full category retirement transaction builder.
 import type { BurnContext, UnsignedTransaction } from "./types.js";
 import type { Utxo } from "../types/TransactionTypes.js";
+import { MintCoreError } from "../utils/errors.js";
 
 /** Extended context that also requires the minting baton UTXO. */
 export type RetirementContext = BurnContext & { batonUtxo: Utxo };
@@ -19,8 +20,9 @@ export type RetirementContext = BurnContext & { batonUtxo: Utxo };
  * @returns          An unsigned transaction ready for signing.
  *
  * @experimental This function is a planned API stub and is **not yet
- * implemented**. Calling it will always throw an `Error` at runtime until a
- * future release provides a full implementation. Do not use in production.
+ * implemented**. Calling it will always throw a {@link MintCoreError} at
+ * runtime until a future release provides a full implementation. Do not use
+ * in production.
  */
 export function buildFullCategoryRetirementTx(
   categoryId: string,
@@ -28,16 +30,16 @@ export function buildFullCategoryRetirementTx(
 ): UnsignedTransaction {
   // --- argument validation ---
   if (!categoryId || categoryId.trim() === "") {
-    throw new Error("categoryId must be a non-empty hex string");
+    throw new MintCoreError("categoryId must be a non-empty hex string");
   }
   if (!Array.isArray(ctx.utxos) || ctx.utxos.length === 0) {
-    throw new Error("ctx.utxos must be a non-empty array");
+    throw new MintCoreError("ctx.utxos must be a non-empty array");
   }
   if (ctx.feeRate <= 0) {
-    throw new Error("ctx.feeRate must be a positive number");
+    throw new MintCoreError("ctx.feeRate must be a positive number");
   }
   if (!ctx.batonUtxo) {
-    throw new Error("ctx.batonUtxo must be provided for full category retirement");
+    throw new MintCoreError("ctx.batonUtxo must be provided for full category retirement");
   }
 
   // TODO: Collect all token UTXOs for categoryId from ctx.utxos.
@@ -55,5 +57,5 @@ export function buildFullCategoryRetirementTx(
   // TODO: Assemble and return the UnsignedTransaction.
   //       Verify that no token field appears on any output (full burn).
 
-  throw new Error("buildFullCategoryRetirementTx is not yet implemented");
+  throw new MintCoreError("buildFullCategoryRetirementTx is not yet implemented");
 }

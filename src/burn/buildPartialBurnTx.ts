@@ -1,5 +1,6 @@
 // Partial burn transaction builder.
 import type { BurnRequest, BurnContext, UnsignedTransaction } from "./types.js";
+import { MintCoreError } from "../utils/errors.js";
 
 /**
  * Build an unsigned BCH transaction that burns `burn.amount` tokens of
@@ -11,8 +12,9 @@ import type { BurnRequest, BurnContext, UnsignedTransaction } from "./types.js";
  * @returns    An unsigned transaction ready for signing.
  *
  * @experimental This function is a planned API stub and is **not yet
- * implemented**. Calling it will always throw an `Error` at runtime until a
- * future release provides a full implementation. Do not use in production.
+ * implemented**. Calling it will always throw a {@link MintCoreError} at
+ * runtime until a future release provides a full implementation. Do not use
+ * in production.
  */
 export function buildPartialBurnTx(
   burn: BurnRequest,
@@ -20,19 +22,19 @@ export function buildPartialBurnTx(
 ): UnsignedTransaction {
   // --- argument validation ---
   if (!burn.categoryId || burn.categoryId.trim() === "") {
-    throw new Error("burn.categoryId must be a non-empty hex string");
+    throw new MintCoreError("burn.categoryId must be a non-empty hex string");
   }
   if (burn.amount <= 0n) {
-    throw new Error("burn.amount must be greater than zero");
+    throw new MintCoreError("burn.amount must be greater than zero");
   }
   if (!burn.changeAddress || burn.changeAddress.trim() === "") {
-    throw new Error("burn.changeAddress must be a non-empty address string");
+    throw new MintCoreError("burn.changeAddress must be a non-empty address string");
   }
   if (!Array.isArray(ctx.utxos) || ctx.utxos.length === 0) {
-    throw new Error("ctx.utxos must be a non-empty array");
+    throw new MintCoreError("ctx.utxos must be a non-empty array");
   }
   if (ctx.feeRate <= 0) {
-    throw new Error("ctx.feeRate must be a positive number");
+    throw new MintCoreError("ctx.feeRate must be a positive number");
   }
 
   // TODO: Select token UTXOs from ctx.utxos whose category matches
@@ -52,5 +54,5 @@ export function buildPartialBurnTx(
   // TODO: Build and return the UnsignedTransaction by assembling the
   //       selected inputs and the computed outputs.
 
-  throw new Error("buildPartialBurnTx is not yet implemented");
+  throw new MintCoreError("buildPartialBurnTx is not yet implemented");
 }

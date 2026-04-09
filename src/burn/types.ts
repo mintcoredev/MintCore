@@ -18,7 +18,7 @@ export interface UnsignedTransaction {
   /** Raw inputs referencing UTXOs to spend. */
   inputs: Array<{ txid: string; vout: number; satoshis: number }>;
   /** Raw outputs (locking bytecode + value). */
-  outputs: Array<{ lockingBytecode: Uint8Array; valueSatoshis: number }>;
+  outputs: Array<{ lockingBytecode: Uint8Array; valueSatoshis: bigint }>;
 }
 
 /** Describes a token burn request. */
