@@ -19,11 +19,8 @@ import type { CovenantDefinition } from "../interfaces/index.js";
  */
 function utf8ToBase64(text: string): string {
   const bytes = new TextEncoder().encode(text);
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
+  const chars = Array.from(bytes, (byte) => String.fromCharCode(byte));
+  return btoa(chars.join(""));
 }
 
 /**
