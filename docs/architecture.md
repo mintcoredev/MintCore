@@ -108,3 +108,25 @@ Phase One establishes the minimal SDK surface needed to build, sign, and broadca
 - **Advanced querying** — on-chain data access is limited to UTXO fetching required for fee funding; no indexer queries, token history, or balance aggregation.
 
 All advanced features must live in separate modules built on top of the SDK.
+
+---
+
+## Data Layer (Phase Two)
+
+Phase Two adds a pure data layer to MintCore for describing packs and items:
+
+```
+src/
+├── packs/             PackId, PackMetadata, PackDefinition interfaces + type guards
+├── items/             ItemId, ItemMetadata, ItemDefinition interfaces + type guards
+├── rarity/            Rarity enum, isRarity(), rarityToString()
+└── serialization/     serializePack / deserializePack / serializeItem / deserializeItem
+```
+
+### Design Principles
+
+- **Packs and items are data-only** — interfaces describe structure; no behaviour is attached.
+- **No RNG or selection logic** — pack contents are declared statically; randomness belongs in the application layer.
+- **Rarity is descriptive, not functional** — `Rarity` enum values carry no probability or weighting semantics.
+- **Serialization is deterministic and pure** — `serializePack` / `deserializePack` and `serializeItem` / `deserializeItem` are stateless functions that validate input and produce canonical JSON.
+

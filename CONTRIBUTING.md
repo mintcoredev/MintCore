@@ -135,6 +135,14 @@ When proposing new features, ask whether the change belongs in the SDK core or i
 
 ---
 
+## Phase Two Boundary Rule
+
+> Packs, items, and rarity are data-only.
+> No RNG, no pack-opening logic, no weighting, no UX.
+> All functional pack logic must live in external modules.
+
+---
+
 ## Further Reading
 
 - [Versioning Policy](docs/VERSIONING.md) — how MintCore versions its releases

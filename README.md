@@ -185,6 +185,32 @@ import {
 } from "mintcore";
 ```
 
+## MintCore SDK — Phase Two: Packs, Items, and Rarity (Data Layer Only)
+
+Phase Two extends MintCore with a pure data layer for describing packs and items in CashTokens-based asset systems.
+
+### What's New in Phase Two
+
+- **Pack definitions** — structured interfaces for describing a pack and its contents
+- **Item definitions** — structured interfaces for individual items with metadata
+- **Rarity enum** — descriptive rarity tiers (Common → Legendary) with no probability or weighting logic
+- **JSON serialization helpers** — pure, deterministic serialization and deserialization for packs and items
+
+```ts
+import { PackDefinition, serializePack } from "mintcore";
+
+const pack: PackDefinition = {
+  id: "starter-pack",
+  version: 1,
+  metadata: { name: "Starter Pack" },
+  items: []
+};
+
+console.log(serializePack(pack));
+```
+
+No pack-opening logic, no RNG, and no rarity weighting are included. All functional logic belongs in application-layer modules built on top of the SDK.
+
 ## MintCore SDK — Phase One Complete
 
 Phase One establishes the minimal, typed SDK foundation for CashTokens minting on Bitcoin Cash:
