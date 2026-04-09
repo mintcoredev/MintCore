@@ -12,3 +12,4 @@ export * from "./rarity/index.js";
 export * from "./items/index.js";
 export * from "./packs/index.js";
 export * from "./serialization/index.js";
+export * from "./covenants/index.js";
