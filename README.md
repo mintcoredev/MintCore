@@ -185,6 +185,21 @@ import {
 } from "mintcore";
 ```
 
+## MintCore SDK — Phase One Complete
+
+Phase One establishes the minimal, typed SDK foundation for CashTokens minting on Bitcoin Cash:
+
+- Core token primitives
+- UTXO models
+- Transaction builder scaffolding
+- Metadata schema v1
+- Fully typed TypeScript interfaces
+- No game logic, no UX, no covenants
+
+```ts
+import { TokenId, TokenUtxo, TransactionBuilder } from "mintcore";
+```
+
 ## Installation
 
 ```bash
