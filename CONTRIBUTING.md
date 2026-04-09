@@ -11,7 +11,8 @@ to get started.
 4. [Commit Messages](#commit-messages)
 5. [Proposing Changes](#proposing-changes)
 6. [Running CLI Examples](#running-cli-examples)
-7. [Further Reading](#further-reading)
+7. [SDK Boundary Rule](#sdk-boundary-rule)
+8. [Further Reading](#further-reading)
 
 ---
 
@@ -121,6 +122,16 @@ TypeScript examples can be run directly with `ts-node`:
 ```bash
 npx ts-node --esm examples/mint-ft.ts
 ```
+
+---
+
+## SDK Boundary Rule
+
+> MintCore SDK must remain minimal.
+> No RNG, no pack logic, no covenant templates, no UX, no game mechanics.
+> All advanced features must live in separate modules.
+
+When proposing new features, ask whether the change belongs in the SDK core or in an application-layer module built on top of MintCore. If in doubt, keep it out of the SDK.
 
 ---
 
