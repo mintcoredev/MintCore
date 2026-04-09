@@ -12,7 +12,7 @@ Core branded scalar types and token interfaces for CashTokens.
 type TokenId = string & { readonly __brand: "TokenId" };
 ```
 
-A 64-character lowercase hex string that uniquely identifies a token output (the genesis transaction id in internal byte order).
+A 64-character lowercase hex string that uniquely identifies a token output (the genesis transaction id in internal/reversed byte order, as used on-chain).
 
 ---
 
@@ -70,7 +70,7 @@ A fungible CashToken carrying an integer amount. The `category` links this token
 ```ts
 interface NftData {
   capability: NftCapability;
-  commitment: string; // up to 40 bytes as lowercase hex
+  commitment: string; // up to 40 bytes (80 hex characters) as lowercase hex
 }
 ```
 
