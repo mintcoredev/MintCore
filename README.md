@@ -1,8 +1,97 @@
-# MintCore
+# MintCore SDK
 
-A CashTokens minting SDK for Bitcoin Cash, built on top of [@bitauth/libauth](https://github.com/bitauth/libauth).
+A minimal, stable TypeScript SDK for building CashTokens-based asset systems on Bitcoin Cash, built on top of [@bitauth/libauth](https://github.com/bitauth/libauth).
 
-MintCore handles the full lifecycle of creating CashTokens on BCH: building and signing genesis transactions, managing minting batons, and estimating fees. It is pure TypeScript with no UI, no wallet integration, and no network client bundled in. Wallet connectivity and UI belong in the application layer built on top of MintCore — the SDK itself is intentionally scope-limited to minting.
+**MintCore SDK is minimal. All advanced modules (pack-opening, covenants, UX, ARPG systems) live in separate repositories.**
+
+MintCore handles the full lifecycle of creating CashTokens on BCH: building and signing genesis transactions, managing minting batons, estimating fees, and modelling pack/item/covenant data structures. It is pure TypeScript with no UI, no wallet integration, and no network client bundled in.
+
+---
+
+## Installation
+
+```bash
+npm install mintcore
+```
+
+Requires **Node.js 18+** (ESM).
+
+---
+
+## Quickstart
+
+```ts
+import { TransactionBuilder } from "mintcore";
+
+// Build and sign a fungible token genesis transaction
+const builder = new TransactionBuilder({
+  network: "mainnet",
+  privateKey: "your32byteprivatekeyhex",
+  utxoProviderUrl: "https://chronik.be.cash/bch",
+});
+
+const result = await builder.build({
+  name: "Gold",
+  symbol: "GOLD",
+  decimals: 2,
+  initialSupply: 1_000_000n,
+});
+
+// result.hex  — signed transaction hex ready to broadcast
+// result.txid — transaction id
+await builder.broadcast(result.hex);
+```
+
+For a no-network example using only data modelling:
+
+```ts
+import { toTokenId, toTokenAmount, PackDefinition, serializePack, Rarity } from "mintcore";
+
+// Create a branded TokenId
+const id = toTokenId("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2");
+
+// Define a pack (data-only, no RNG or opening logic)
+const pack: PackDefinition = {
+  id: "starter-pack-v1",
+  version: 1,
+  metadata: { name: "Starter Pack" },
+  items: [{ id: "iron-sword", version: 1, rarity: Rarity.Common, metadata: { name: "Iron Sword" } }],
+};
+console.log(serializePack(pack));
+```
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Getting Started](docs/getting-started.md) | Installation, basic usage, minimal examples |
+| [Token Primitives](docs/core/token-primitives.md) | Branded types, type guards, coercion helpers |
+| [UTXO Models](docs/core/utxo-models.md) | `BaseUtxo`, `TokenUtxo`, assertion helpers |
+| [Transaction Builder](docs/core/transaction-builder.md) | Building and signing genesis transactions |
+| [Packs](docs/assets/packs.md) | `PackDefinition`, `PackMetadata` |
+| [Items](docs/assets/items.md) | `ItemDefinition`, `ItemMetadata` |
+| [Rarity](docs/assets/rarity.md) | `Rarity` enum and helpers |
+| [Covenant Interfaces](docs/covenants/covenant-interfaces.md) | `CovenantDefinition` and constraints |
+| [Covenant Builder](docs/covenants/covenant-builder.md) | Abstract `CovenantBuilder` class |
+| [Covenant Utils](docs/covenants/covenant-utils.md) | Hashing and metadata encoding |
+| [JSON Helpers](docs/serialization/json-helpers.md) | Deterministic pack/item serialization |
+| [Versioning](docs/VERSIONING.md) | SemVer rules, breaking change policy |
+
+---
+
+## Examples
+
+Self-contained TypeScript examples under [`/examples`](examples/):
+
+| Example | Demonstrates |
+|---------|-------------|
+| [`create-token/`](examples/create-token/) | `TokenId`, `TokenUtxo`, metadata schema v1 |
+| [`define-pack/`](examples/define-pack/) | `PackDefinition`, `Rarity`, JSON serialization |
+| [`covenant-structure/`](examples/covenant-structure/) | `CovenantBuilder`, hashing, metadata encoding |
+
+---
 
 ## What MintCore Does
 
@@ -185,54 +274,7 @@ import {
 } from "mintcore";
 ```
 
-## MintCore SDK — Phase Two: Packs, Items, and Rarity (Data Layer Only)
-
-Phase Two extends MintCore with a pure data layer for describing packs and items in CashTokens-based asset systems.
-
-### What's New in Phase Two
-
-- **Pack definitions** — structured interfaces for describing a pack and its contents
-- **Item definitions** — structured interfaces for individual items with metadata
-- **Rarity enum** — descriptive rarity tiers (Common → Legendary) with no probability or weighting logic
-- **JSON serialization helpers** — pure, deterministic serialization and deserialization for packs and items
-
-```ts
-import { PackDefinition, serializePack } from "mintcore";
-
-const pack: PackDefinition = {
-  id: "starter-pack",
-  version: 1,
-  metadata: { name: "Starter Pack" },
-  items: []
-};
-
-console.log(serializePack(pack));
-```
-
-No pack-opening logic, no RNG, and no rarity weighting are included. All functional logic belongs in application-layer modules built on top of the SDK.
-
-## MintCore SDK — Phase One Complete
-
-Phase One establishes the minimal, typed SDK foundation for CashTokens minting on Bitcoin Cash:
-
-- Core token primitives
-- UTXO models
-- Transaction builder scaffolding
-- Metadata schema v1
-- Fully typed TypeScript interfaces
-- No game logic, no UX, no covenants
-
-```ts
-import { TokenId, TokenUtxo, TransactionBuilder } from "mintcore";
-```
-
-## Installation
-
-```bash
-npm install mintcore
-```
-
-Requires Node.js 18+ (ESM).
+---
 
 ## What MintCore Does Not Include
 
@@ -241,3 +283,8 @@ Requires Node.js 18+ (ESM).
 - A bundled network client — bring your own Chronik or ElectrumX URL
 - Key management beyond raw 32-byte private key signing
 - On-chain querying beyond UTXO fetching for fee funding
+- Pack-opening logic, RNG, or probability weighting
+- Covenant enforcement or script generation
+- Game mechanics or ARPG systems
+
+**All advanced modules live in separate repositories built on top of MintCore.**

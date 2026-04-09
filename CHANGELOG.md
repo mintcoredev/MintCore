@@ -7,110 +7,89 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ---
 
-## [Unreleased]
+## [Unreleased] — Phase Four: Documentation, Examples & API Clarity
 
 ### Added
 
-- `generateKey()` — generates a cryptographically secure random 32-byte private key as a hex string.
-- `deriveAddress(privateKey, network)` — derives a P2PKH CashAddress from a private key for mainnet, testnet, or regtest.
-- **`generateBcmr(options)`** — builds a spec-compliant [CHIP-BCMR v2](https://github.com/bitjson/chip-bcmr) JSON document from token identity inputs. Exported from `mintcore`.
-- **`hashBcmr(doc)`** — computes the SHA-256 content hash of a BCMR document and returns it as a 64-character lowercase hex string. Use the result as `bcmrHash` in `TokenSchema` to create a hash-pinned authchain registration.
-- **`TokenSchema.bcmrHash`** — new optional field (`string`); a 64-hex-char SHA-256 hash of the BCMR document at `bcmrUri`. When set, `TransactionBuilder` emits `OP_RETURN BCMR <hash> <uri>` instead of the URI-only form.
-- **BCMR types** — `BcmrDocument`, `BcmrIdentitySnapshot`, `BcmrTokenRecord`, `BcmrVersion`, `BcmrGeneratorOptions` exported from `mintcore`.
+- **Full documentation site** under `/docs`:
+  - `docs/getting-started.md` — installation, basic usage, minimal examples.
+  - `docs/core/token-primitives.md` — branded types, type guards, validation helpers.
+  - `docs/core/utxo-models.md` — `BaseUtxo`, `TokenUtxo`, assertion helpers.
+  - `docs/core/transaction-builder.md` — `TransactionBuilder`, `MintConfig`, `TokenSchema`.
+  - `docs/assets/packs.md` — `PackDefinition`, `PackMetadata`, type guards.
+  - `docs/assets/items.md` — `ItemDefinition`, `ItemMetadata`, type guards.
+  - `docs/assets/rarity.md` — `Rarity` enum, `isRarity`, `rarityToString`.
+  - `docs/covenants/covenant-interfaces.md` — all covenant interface types.
+  - `docs/covenants/covenant-builder.md` — abstract `CovenantBuilder` class.
+  - `docs/covenants/covenant-utils.md` — `hashCovenantDefinition`, metadata encode/decode.
+  - `docs/serialization/json-helpers.md` — `serializePack`, `deserializePack`, and item equivalents.
+- **Three self-contained example projects** under `/examples`:
+  - `examples/create-token/` — `TokenId`, `TokenUtxo`, metadata schema v1.
+  - `examples/define-pack/` — `PackDefinition`, `ItemDefinition`, `Rarity`, JSON serialization.
+  - `examples/covenant-structure/` — `CovenantBuilder`, hashing, metadata encoding.
+- **Public API exports** — `TokenPrimitives`, `UtxoTypes`, and `MetadataSchema` now exported from the main `"mintcore"` package entry point.
+- **JSDoc** added to `src/index.ts`, `LibauthAdapter`, and `VERSION`.
+- **`VERSIONING.md`** — expanded with module compatibility expectations.
 
 ### Changed
 
-### Fixed
-
-- **Key zeroing** — private key bytes are cleared from memory immediately after signing to reduce the key's exposure window.
-- **Address validation** — `TransactionBuilder` now validates the derived CashAddress before using it, throwing a `MintCoreError` with a descriptive message if the address cannot be decoded.
-- **UTXO schema guard** — Malformed entries are dropped; if every non-empty entry is malformed, the provider throws a `MintCoreError` with a clear schema message.
-- **BCMR URI length limit** — `bcmrUri` values exceeding 512 bytes are now rejected with a `MintCoreError` during schema validation.
-- **Deterministic UTXO ordering** — inputs are sorted by `txid` then `vout` before signing, ensuring a canonical and reproducible transaction layout. This makes txids reproducible across runs and providers, which simplifies snapshot tests and regression detection.
-
-### Removed
+- `README.md` — overhauled with scope statement, quickstart, and documentation links.
 
 ---
 
-## [0.1.4] - 2026-03-28 — WizardConnect Removal
+## [0.1.4] - 2026-03-28 — Phase Three: Covenant Data Layer
+
+### Added
+
+- **Covenant module** (`src/covenants/`) — pure data layer for describing CashTokens covenant structures.
+  - `CovenantCondition` — generic condition descriptor with a type tag and optional params.
+  - `CovenantInputConstraint` / `CovenantOutputConstraint` — input and output constraint interfaces.
+  - `CovenantDefinition` — complete, versioned covenant description (pure data; no script bytecode).
+  - `CovenantBuilder` — abstract base class for assembling `CovenantDefinition` objects.
+  - `hashCovenantDefinition(def)` — SHA-256 fingerprint of a covenant definition (64-char hex).
+  - `encodeCovenantMetadata(meta)` / `decodeCovenantMetadata(encoded)` — Base64 encode/decode for covenant metadata.
+  - Type guards: `isCovenantCondition`, `isCovenantInputConstraint`, `isCovenantOutputConstraint`, `isCovenantDefinition`.
+  - Assertion helpers: `assertCovenantCondition`, `assertCovenantDefinition`.
+- **BCMR generator** — `generateBcmr(options)` builds a spec-compliant CHIP-BCMR v2 JSON document; `hashBcmr(doc)` computes its SHA-256 content hash.
+- **`TokenSchema.bcmrHash`** — new optional field; when set with `bcmrUri`, emits `OP_RETURN BCMR <hash> <uri>` (hash-pinned authchain).
+- **Key generation** — `generateKey()` generates a cryptographically secure random 32-byte private key as hex.
+- **Address derivation** — `deriveAddress(privateKey, network)` derives a P2PKH CashAddress from a private key.
 
 ### Changed
 
-- **`WizardConnectClientLike`** renamed to `BchWalletClientLike` — generic duck-typed
-  BCH wallet client interface, no longer tied to WizardConnect.
-- **`WizardConnectSession`** renamed to `BchWalletSession` — generic session descriptor.
-- **`WizardAdapter`** renamed to `BaseWalletAdapter` — base `WalletAdapter`
-  implementation; constructor signature and all methods unchanged.
+- **`WizardConnectClientLike`** renamed to `BchWalletClientLike`.
+- **`WizardConnectSession`** renamed to `BchWalletSession`.
+- **`WizardAdapter`** renamed to `BaseWalletAdapter`.
 - **`WizardAdapterClientLike`** renamed to `WalletAdapterClientLike`.
-- **`PaytacaAdapter`**, **`CashonizeAdapter`**, **`ZapitAdapter`** — no longer read from
-  `window.*.wizardconnect`; now read directly from `window.paytaca`,
-  `window.cashonize`, and `window.zapit` respectively.
+- **`PaytacaAdapter`**, **`CashonizeAdapter`**, **`ZapitAdapter`** — read directly from `window.*` instead of `window.*.wizardconnect`.
 
 ### Removed
 
-- **`WizardConnectProvider`** and **`WizardConnectProviderOptions`** — removed entirely.
-  A WalletConnect v2 provider will be introduced in a future release.
+- **`WizardConnectProvider`** and **`WizardConnectProviderOptions`** removed.
 
 ---
 
-## [0.1.3] - 2026-03-22 — Wizard Connect Engine (replaces WalletConnect v2, itself removed in v0.1.4)
+## [0.1.3] - 2026-03-22 — Phase Two: Packs, Items, and Rarity (Data Layer)
 
 ### Added
 
-- **Wizard Connect support for Bitcoin Cash** — the wallet engine now uses Wizard
-  Connect, a BCH-native protocol. No WalletConnect, EVM chain IDs, or multi-chain
-  abstractions.
-- **`WizardConnectClientLike`** — duck-typed interface for Wizard Connect clients;
-  exposes `getAccounts()`, `signTransaction()`, and `disconnect()`.
-- **`WizardConnectSession`** — minimal session descriptor with `id` and optional
-  `expiry`.
-- **`WizardConnectProvider`** — `WalletProvider` adapter for Wizard Connect;
-  implements `getAddress()` and `signTransaction()`.
-- **`BchWalletAdapter`** — modular adapter interface for adding BCH wallet support;
-  implement to integrate any BCH wallet into the engine.
-
-### Changed
-
-- **`WalletClient`** — now wraps `WizardConnectClientLike` instead of `WalletConnectV2Client`.
-- **`WalletManager.connect()` / `reconnect()`** — no longer accept a `chainId` parameter.
-- **`WalletSession`** — `topic` renamed to `id`; `chainId` field removed.
-
-### Removed
-
-- **`WalletConnectProvider`** — replaced by `WizardConnectProvider`.
-- **`WalletConnectClientLike`** — replaced by `WizardConnectClientLike`.
-- **`WalletConnectProviderOptions`** — replaced by `WizardConnectProviderOptions`.
-- **`WalletConnectV2Client`** — replaced by `WizardConnectClientLike`.
-- **`WalletConnectSession`** — replaced by `WizardConnectSession`.
-- **`WalletSession.topic`** and **`WalletSession.chainId`** — removed; use `id` instead.
-- **`WalletClient.signMessage()`** and **`WalletManager.signMessage()`** — removed;
-  `personal_sign` is an EVM-derived method and not part of the BCH-native Wizard Connect
-  protocol.
+- **Pack definitions** (`src/packs/`) — `PackDefinition`, `PackMetadata`, `PackId`; type guards `isPackDefinition`, `isPackMetadata`; assertion helper `assertPackDefinition`.
+- **Item definitions** (`src/items/`) — `ItemDefinition`, `ItemMetadata`, `ItemId`; type guards `isItemDefinition`, `isItemMetadata`; assertion helper `assertItemDefinition`.
+- **Rarity enum** (`src/rarity/`) — `Rarity` (Common=0 … Legendary=4); `isRarity` type guard; `rarityToString` helper.
+- **JSON serialization** (`src/serialization/`) — `serializePack`, `deserializePack`, `serializeItem`, `deserializeItem`; deterministic and side-effect free.
+- **Wizard Connect support** — BCH-native wallet protocol integration (superseded in v0.1.4).
 
 ---
 
-## [0.1.2] - 2026-03-21 — WalletConnect v2 Engine
+## [0.1.2] - 2026-03-21 — Phase One: Core Token Primitives
 
 ### Added
 
-- **WalletConnect v2 support for Bitcoin Cash** — new wallet engine under `src/wallet/`
-  that connects to BCH wallets via the WalletConnect v2 protocol.
-- **`WalletClient`** — low-level adapter wrapping a duck-typed `WalletConnectV2Client`;
-  resolves addresses via `bch_getAccounts` and signs via `bch_signTransaction` /
-  `personal_sign`.
-- **`WalletManager`** — high-level lifecycle orchestrator; manages connection state,
-  delegates signing to `WalletClient`, and emits typed events.
-- **`WalletTypes`** — shared enumerations (`WalletType`, `WalletConnectionState`),
-  constants (`BCH_CHAIN_IDS`), and interfaces (`WalletSession`, `WalletEventPayload`).
-- **Public wallet API** — `connect`, `disconnect`, `getAddress`, `getWalletType`,
-  `signTransaction`, `signMessage` exposed via `WalletManager`.
-- **Event system** — `connected`, `disconnected`, `stateChange`, and `error` events
-  for reactive wallet state management.
-- **BCH namespace support** — `bch:bitcoincash`, `bch:bchtest`, and `bch:bchreg`.
-- **Supported wallets** — Paytaca, Cashonize, and Zapit enumerated in `WalletType`.
-- **No UI included** — engine only; no modal, dialog, React component, or DOM access.
-- **Updated internal architecture** — wallet subsystem is modular and independently
-  importable without affecting the existing minting engine.
+- **Core token primitives** (`src/types/TokenPrimitives.ts`) — branded types `TokenId`, `TokenCategory`, `TokenAmount`, `NftCapability`; interfaces `FungibleToken`, `NftData`, `NonFungibleToken`; coercions `toTokenId`, `toTokenCategory`, `toTokenAmount`; type guards and assertion helpers.
+- **UTXO models** (`src/types/UtxoTypes.ts`) — `BaseUtxo`, `TokenUtxo`, `UtxoTokenData`; type guards `isBaseUtxo`, `isTokenUtxo`; assertion helpers `assertBaseUtxo`, `assertTokenUtxo`.
+- **Metadata schema v1** (`src/types/MetadataSchema.ts`) — `MetadataSchema` interface; `isMetadataSchema` guard; `assertMetadataSchema` helper.
+- **Transaction builder scaffolding** (`src/core/TransactionBuilder.ts`) — `TransactionBuilder` class; offline and provider-backed build modes.
+- **WalletConnect v2** — BCH wallet engine via WalletConnect v2 (superseded in v0.1.3).
 
 ---
 
@@ -118,37 +97,27 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 
 ### Added
 
-- **`BatchMintEngine`** — new high-level engine for planning and executing large-scale
-  CashTokens mint operations across multiple optimised transactions.
-- **`planMintBatch(requests, options?)`** — deterministic, pure planning phase; groups
-  mint requests into fee-bounded transaction chunks, selects UTXOs with a greedy
-  largest-first algorithm, and returns a cost summary before any transaction is signed.
-  Works in offline mode (no UTXO provider) for fee previews.
-- **`executeMintBatch(plan, options?)`** — signs and broadcasts all planned transactions
-  in order; maps every mint request back to its resulting `txid` and output index.
-- **`BatchMintOptions`** — configurable planning parameters: `maxOutputsPerTx`,
-  `maxFeePerTx`, `feeRate`, `feeSafetyMarginPercent`, `continueOnFailure`.
-- **`BatchMintPlan` / `PlannedTransaction` / `MintExecutionResult`** — typed result
-  structures for the planning and execution phases.
-- **`MintRequest`** — typed input describing a single token output to mint, including
-  `capability`, `amount`, optional `category`, `commitment`, and `recipientAddress`.
-- **`UtxoLock`** — internal UTXO locking registry that prevents double-selection of
-  inputs across chunks within the same batch; locks are released unconditionally on
-  completion or failure.
-- **Fee utilities** — `estimateBatchTxFee` and `estimateBatchTxSize` for accurate
-  pre-signing cost estimation with a configurable safety margin.
-- **`BatchMintTypes`** — all shared TypeScript types for the batch minting subsystem,
-  exported from the top-level package entry point.
+- **`BatchMintEngine`** — plans and executes large-scale CashTokens mint operations across multiple optimised transactions.
+- **`planMintBatch(requests, options?)`** — deterministic planning phase; groups requests into fee-bounded chunks.
+- **`executeMintBatch(plan, options?)`** — signs and broadcasts all planned transactions in order.
+- **`BatchMintOptions`** — configurable planning parameters.
+- **`BatchMintPlan` / `PlannedTransaction` / `MintExecutionResult`** — typed result structures.
+- **`MintRequest`** — typed input describing a single token output to mint.
+- **`UtxoLock`** — in-memory UTXO lock registry to prevent double-selection within a batch.
+- **Fee utilities** — `estimateBatchTxFee`, `estimateBatchTxSize`.
 
 ---
 
-## [0.1.0-beta] - 2026-03-01
+## [0.1.0-beta] - 2026-03-01 — Initial Release
 
 ### Added
 
 - Initial release of MintCore.
 - Core minting engine for CashTokens (FT and NFT) built on `@bitauth/libauth`.
-- Hex encoding/decoding utilities.
+- `MintEngine` — single-token minting engine.
+- `TransactionBuilder` — low-level genesis transaction builder.
+- `LibauthAdapter` — convenience adapter around `TransactionBuilder`.
+- Hex encoding/decoding utilities (`toHex`, `fromHex`).
 - TypeScript type definitions for all public exports.
 - Vitest-based test suite.
 
@@ -158,3 +127,4 @@ project adheres to [Semantic Versioning](docs/VERSIONING.md).
 [0.1.2]: https://github.com/mintcoredev/MintCore/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/mintcoredev/MintCore/compare/v0.1.0-beta...v0.1.1
 [0.1.0-beta]: https://github.com/mintcoredev/MintCore/releases/tag/v0.1.0-beta
+
