@@ -1,6 +1,5 @@
 // Hex and binary encoding utilities.
 export { toHex } from "./hex.js";
-export { fromHex } from "./hex.js";
 import { fromHex } from "./hex.js";
 
 /**
