@@ -2,7 +2,13 @@ export interface Utxo {
   txid: string;
   vout: number;
   satoshis: number;
-  scriptPubKey: string;
+  /**
+   * Locking script (hex). May be absent when the UTXO was fetched from a
+   * provider that does not return script data (e.g. ElectrumX/Fulcrum).
+   * Internal signing paths derive the locking bytecode from the private key,
+   * so the absence of this field does not affect minting operations.
+   */
+  scriptPubKey?: string;
 }
 
 export interface TokenOutput {

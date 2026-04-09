@@ -22,6 +22,7 @@ import type {
 } from "../types/BatchMintTypes.js";
 import { MintCoreError } from "../utils/errors.js";
 import { fromHex, toHex, validatePrivateKeyHex } from "../utils/hex.js";
+import { encodeCommitment } from "../utils/encoding.js";
 import {
   estimateBatchTxFee,
   estimateBatchTxSize,
@@ -274,6 +275,14 @@ export class BatchMintEngine {
       throw new MintCoreError(
         "Execution requires a UTXO provider. Set `utxoProviderUrl` or `electrumxProviderUrl` in MintConfig."
       );
+    }
+
+    // Re-validate all mint requests at execution time to catch any mutations
+    // that may have occurred between planning and execution.
+    for (const plannedTx of plan.transactions) {
+      for (const req of plannedTx.mintRequests) {
+        validateMintRequest(req);
+      }
     }
 
     const continueOnFailure = options?.continueOnFailure ?? false;
@@ -572,7 +581,7 @@ export class BatchMintEngine {
             nft: {
               capability: capMap[req.capability],
               commitment: req.commitment
-                ? this.encodeCommitment(req.commitment)
+                ? encodeCommitment(req.commitment)
                 : new Uint8Array(0),
             },
           }
@@ -584,17 +593,6 @@ export class BatchMintEngine {
       valueSatoshis: BigInt(TOKEN_OUTPUT_DUST),
       token: tokenData,
     };
-  }
-
-  /** Encode an NFT commitment string to bytes (hex or UTF-8). */
-  private encodeCommitment(raw: string): Uint8Array {
-    if (raw.startsWith("0x")) {
-      return fromHex(raw.slice(2));
-    }
-    if (/^[0-9a-fA-F]+$/.test(raw) && raw.length % 2 === 0) {
-      return fromHex(raw);
-    }
-    return new TextEncoder().encode(raw);
   }
 
   /** Decode a CashAddress to its P2PKH locking bytecode. */
@@ -616,12 +614,16 @@ export class BatchMintEngine {
   /** Return the P2PKH locking bytecode for the configured private key. */
   private getLockingBytecode(): Uint8Array {
     const privKeyBin = fromHex(this.config.privateKey!);
-    const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
-    if (typeof pubKey === "string") {
-      throw new MintCoreError(`Invalid private key: ${pubKey}`);
+    try {
+      const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
+      if (typeof pubKey === "string") {
+        throw new MintCoreError(`Invalid private key: ${pubKey}`);
+      }
+      const pkh = hash160(pubKey);
+      return encodeLockingBytecodeP2pkh(pkh);
+    } finally {
+      privKeyBin.fill(0);
     }
-    const pkh = hash160(pubKey);
-    return encodeLockingBytecodeP2pkh(pkh);
   }
 
   /** Derive the CashAddress for the configured network and private key. */

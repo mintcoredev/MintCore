@@ -5,13 +5,15 @@
  *
  *  1.1  fromHex strict validation (no silent NaN→0 corruption)
  *  1.2  validatePrivateKeyHex — private key format enforced before crypto use
- *  1.3  Burn stubs throw instead of silently returning empty transactions
+ *  1.3  Burn stubs throw MintCoreError instead of silently returning empty transactions
  *  2.1  BCMR OP_RETURN size correctly reflected in fee estimate
  *  2.2  Negative change guard in BatchMintEngine.executeOnePlannedTx
  *  2.3  MintRequest.category respected per-output instead of silently ignored
+ *  2.4  IPv6 SSRF bypass blocked (::1, fc00::/7, fe80::/10, ::ffff:private)
  *  2.5  validateProviderUrl blocks RFC 1918 / link-local addresses (SSRF)
  *  3.1  Broadcast parsers throw MintCoreError when txid is absent from response
  *  3.2  BCMR timestamp rejects values more than 24 h in the future
+ *  3.3  continueOnFailure must be a boolean (type-checked in validateBatchMintOptions)
  *  Sort  Numeric UTXO sort uses safe comparator
  */
 
@@ -494,6 +496,157 @@ describe("generateBcmr — timestamp bounds check", () => {
   it("throws for a timestamp years in the future", () => {
     expect(() =>
       generateBcmr({ category: BCMR_CATEGORY, name: "T", timestamp: "2099-01-01T00:00:00.000Z" })
+    ).toThrow(MintCoreError);
+  });
+});
+
+// ── 1.3 (extended) Burn stubs throw MintCoreError specifically ────────────────
+
+describe("buildPartialBurnTx — throws MintCoreError (not plain Error)", () => {
+  it("throws MintCoreError for an empty categoryId", () => {
+    expect(() =>
+      buildPartialBurnTx(
+        { categoryId: "", amount: 100n, changeAddress: "bitcoincash:q..." },
+        BURN_CONTEXT,
+      )
+    ).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError for zero burn amount", () => {
+    expect(() =>
+      buildPartialBurnTx({ ...BURN_REQUEST, amount: 0n }, BURN_CONTEXT)
+    ).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError when fully implemented stub is hit", () => {
+    expect(() => buildPartialBurnTx(BURN_REQUEST, BURN_CONTEXT)).toThrow(MintCoreError);
+  });
+});
+
+describe("buildFullCategoryRetirementTx — throws MintCoreError (not plain Error)", () => {
+  const ctx = {
+    ...BURN_CONTEXT,
+    batonUtxo: { txid: "b".repeat(64), vout: 0, satoshis: 1000 },
+  };
+
+  it("throws MintCoreError for an empty categoryId", () => {
+    expect(() => buildFullCategoryRetirementTx("", ctx)).toThrow(MintCoreError);
+  });
+
+  it("throws MintCoreError when fully implemented stub is hit", () => {
+    expect(() => buildFullCategoryRetirementTx("a".repeat(64), ctx)).toThrow(
+      MintCoreError
+    );
+  });
+});
+
+// ── 2.4 IPv6 SSRF bypass protection ──────────────────────────────────────────
+
+describe("validateProviderUrl — IPv6 SSRF protection", () => {
+  const DUMMY_ADDRESS = "bitcoincash:qp3wjpa3tjlj042z2wv7hahsldgwhwy0rq9sywjpyy";
+
+  it("rejects IPv6 unique-local fc00:: (fc prefix) Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://[fc00::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+    await expect(
+      chronikFetchUtxos("https://[fc00::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(/private or link-local/i);
+  });
+
+  it("rejects IPv6 unique-local fd00:: (fd prefix) Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://[fd00::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("rejects IPv6 link-local fe80:: Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://[fe80::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+    await expect(
+      chronikFetchUtxos("https://[fe80::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(/private or link-local/i);
+  });
+
+  it("rejects IPv6 link-local feb0:: Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://[feb0::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("rejects IPv4-mapped ::ffff:10.0.0.1 Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://[::ffff:10.0.0.1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("rejects IPv4-mapped ::ffff:192.168.1.1 Chronik URL", async () => {
+    await expect(
+      chronikFetchUtxos("https://[::ffff:192.168.1.1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+
+  it("allows IPv6 ::1 loopback (HTTP) for development", async () => {
+    // ::1 is treated as local (like 127.0.0.1); will fail at the network layer.
+    const rejection = chronikFetchUtxos("http://[::1]:9999/api", DUMMY_ADDRESS);
+    await expect(rejection).rejects.toThrow();
+    await expect(
+      chronikFetchUtxos("http://[::1]:9999/api", DUMMY_ADDRESS)
+    ).rejects.not.toThrow(
+      expect.objectContaining({ message: expect.stringMatching(/private or link-local/i) })
+    );
+  });
+
+  it("rejects IPv6 fc00:: ElectrumX URL", async () => {
+    await expect(
+      electrumxFetchUtxos("https://[fc00::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+    await expect(
+      electrumxFetchUtxos("https://[fc00::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(/private or link-local/i);
+  });
+
+  it("rejects IPv6 fe80:: ElectrumX URL", async () => {
+    await expect(
+      electrumxFetchUtxos("https://[fe80::1]/api", DUMMY_ADDRESS)
+    ).rejects.toThrow(MintCoreError);
+  });
+});
+
+// ── 3.3 continueOnFailure must be a boolean ────────────────────────────────────
+
+import { validateBatchMintOptions } from "../../src/utils/validate.js";
+
+describe("validateBatchMintOptions — continueOnFailure type check", () => {
+  it("does not throw when continueOnFailure is true", () => {
+    expect(() =>
+      validateBatchMintOptions({ continueOnFailure: true })
+    ).not.toThrow();
+  });
+
+  it("does not throw when continueOnFailure is false", () => {
+    expect(() =>
+      validateBatchMintOptions({ continueOnFailure: false })
+    ).not.toThrow();
+  });
+
+  it("does not throw when continueOnFailure is omitted", () => {
+    expect(() => validateBatchMintOptions({})).not.toThrow();
+  });
+
+  it("throws MintCoreError when continueOnFailure is a number (truthy)", () => {
+    expect(() =>
+      validateBatchMintOptions({ continueOnFailure: 1 as unknown as boolean })
+    ).toThrow(MintCoreError);
+    expect(() =>
+      validateBatchMintOptions({ continueOnFailure: 1 as unknown as boolean })
+    ).toThrow(/continueOnFailure must be a boolean/i);
+  });
+
+  it("throws MintCoreError when continueOnFailure is a string", () => {
+    expect(() =>
+      validateBatchMintOptions({ continueOnFailure: "yes" as unknown as boolean })
     ).toThrow(MintCoreError);
   });
 });

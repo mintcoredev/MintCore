@@ -6,6 +6,16 @@
  * @param totalSupply - Total fungible token supply.
  * @param burnRatio   - Fraction to burn (0 < burnRatio <= 1).
  * @returns           Number of tokens to burn (truncated toward zero).
+ *
+ * @remarks
+ * `burnRatio` is a JavaScript `number` (IEEE 754 double), so values that
+ * cannot be represented exactly in binary floating-point (e.g. `1/3`, `0.1`)
+ * will incur a small rounding error. The function internally converts
+ * `burnRatio` to a rational fraction with a precision of 10^15, then performs
+ * integer arithmetic to avoid floating-point drift in the multiplication.
+ * For the majority of use-cases this precision is sufficient, but callers
+ * requiring exact control over the burn amount should compute it directly and
+ * pass it to `splitBurn` instead.
  */
 export function calculateBurnAmounts(totalSupply: bigint, burnRatio: number): bigint {
   if (burnRatio <= 0 || burnRatio > 1) {

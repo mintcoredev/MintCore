@@ -15,6 +15,7 @@ import { TokenSchema } from "../types/TokenSchema.js";
 import { Utxo, BuiltTransaction } from "../types/TransactionTypes.js";
 import { MintCoreError } from "../utils/errors.js";
 import { fromHex, toHex, validatePrivateKeyHex } from "../utils/hex.js";
+import { encodeCommitment } from "../utils/encoding.js";
 import {
   estimateFee,
   estimateBcmrOutputSize,
@@ -259,12 +260,16 @@ export class TransactionBuilder {
   /** Derive the P2PKH locking bytecode from the configured private key. */
   private deriveLockingBytecode(): Uint8Array {
     const privKeyBin = fromHex(this.config.privateKey!);
-    const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
-    if (typeof pubKey === "string") {
-      throw new MintCoreError(`Invalid private key: ${pubKey}`);
+    try {
+      const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
+      if (typeof pubKey === "string") {
+        throw new MintCoreError(`Invalid private key: ${pubKey}`);
+      }
+      const pkh = hash160(pubKey);
+      return encodeLockingBytecodeP2pkh(pkh);
+    } finally {
+      privKeyBin.fill(0);
     }
-    const pkh = hash160(pubKey);
-    return encodeLockingBytecodeP2pkh(pkh);
   }
 
   /** Derive the CashAddress for the configured network and private key. */
@@ -298,17 +303,6 @@ export class TransactionBuilder {
     return providerFetchUtxos(this.config, this.deriveAddressFromConfig());
   }
 
-  /** Encode the NFT commitment string to bytes (hex or UTF-8). */
-  private encodeCommitment(raw: string): Uint8Array {
-    if (raw.startsWith("0x")) {
-      return fromHex(raw.slice(2));
-    }
-    if (/^[0-9a-fA-F]+$/.test(raw) && raw.length % 2 === 0) {
-      return fromHex(raw);
-    }
-    return new TextEncoder().encode(raw);
-  }
-
   private buildTokenOutput(
     schema: TokenSchema,
     lockingBytecode: Uint8Array,
@@ -332,7 +326,7 @@ export class TransactionBuilder {
       };
       tokenData.nft = {
         capability: capMap[schema.nft.capability],
-        commitment: this.encodeCommitment(schema.nft.commitment),
+        commitment: encodeCommitment(schema.nft.commitment),
       };
     }
 

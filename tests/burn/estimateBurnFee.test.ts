@@ -59,4 +59,34 @@ describe("estimateBurnFee", () => {
       expect(estimateBurnFee(1, 0, 1)).toBe(158n);
     });
   });
+
+  describe("CashTokens token prefix overhead", () => {
+    it("adds 50 bytes per token input", () => {
+      // baseline: 10 + 148 + 34 = 192
+      // with 1 token input: 192 + 50 = 242
+      expect(estimateBurnFee(1, 1, 1, 1, 0)).toBe(242n);
+    });
+
+    it("adds 50 bytes per token output", () => {
+      // baseline: 10 + 148 + 34 = 192
+      // with 1 token output: 192 + 50 = 242
+      expect(estimateBurnFee(1, 1, 1, 0, 1)).toBe(242n);
+    });
+
+    it("adds 50 bytes for each token input and output", () => {
+      // baseline: 10 + 148 + 34 = 192
+      // 2 token inputs + 1 token output: 192 + 50 + 50 + 50 = 342
+      expect(estimateBurnFee(1, 1, 1, 2, 1)).toBe(342n);
+    });
+
+    it("defaults numTokenInputs and numTokenOutputs to 0", () => {
+      // Omitting the token params should give the same result as (1,1,1,0,0)
+      expect(estimateBurnFee(1, 1, 1)).toBe(estimateBurnFee(1, 1, 1, 0, 0));
+    });
+
+    it("token overhead scales with feeRate", () => {
+      // 242 bytes * 2 = 484
+      expect(estimateBurnFee(1, 1, 2, 1, 0)).toBe(484n);
+    });
+  });
 });

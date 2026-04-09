@@ -36,6 +36,11 @@ export async function mintNFT(
  * This is a **placeholder** implementation. It performs a local format check
  * only and does **not** contact any network provider to confirm the
  * transaction has been broadcast or confirmed.
+ *
+ * @deprecated This function only validates the txid format locally and does
+ *   not perform any on-chain verification. It will be replaced by a real
+ *   network-backed implementation in a future release. Do not rely on it to
+ *   confirm that a transaction is broadcast or confirmed.
  */
 export async function verifyMint(
   _config: MintConfig,

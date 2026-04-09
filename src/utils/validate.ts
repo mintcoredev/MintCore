@@ -241,4 +241,10 @@ export function validateBatchMintOptions(opts: BatchMintOptions): void {
       );
     }
   }
+
+  if (opts.continueOnFailure !== undefined) {
+    if (typeof opts.continueOnFailure !== "boolean") {
+      throw new MintCoreError("continueOnFailure must be a boolean");
+    }
+  }
 }

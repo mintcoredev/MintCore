@@ -15,19 +15,37 @@ const OUTPUT_SIZE = 34; // P2PKH output (value 8 + scriptPubKey 26)
 const BASE_TX_SIZE = 10; // version 4 + input/output count varints + locktime 4
 
 /**
+ * Extra bytes added per CashTokens input or output (category 32 + capability/flag 1
+ * + amount varint ~1-9 bytes; 50 bytes is the conservative upper bound used
+ * throughout the minting engine).
+ */
+const TOKEN_PREFIX_OVERHEAD = 50;
+
+/**
  * Estimates the miner fee for a BCH transaction with the given input/output
  * counts, assuming all inputs and outputs are standard P2PKH.
  *
- * @param inputCount  - Number of transaction inputs.
- * @param outputCount - Number of transaction outputs.
- * @param feeRate     - Fee rate in satoshis per byte.
- * @returns           Estimated fee in satoshis as a `bigint`.
+ * @param inputCount      - Number of transaction inputs.
+ * @param outputCount     - Number of transaction outputs.
+ * @param feeRate         - Fee rate in satoshis per byte.
+ * @param numTokenInputs  - Number of inputs that carry a CashToken (each adds
+ *                          {@link TOKEN_PREFIX_OVERHEAD} bytes). Defaults to 0.
+ * @param numTokenOutputs - Number of outputs that carry a CashToken (each adds
+ *                          {@link TOKEN_PREFIX_OVERHEAD} bytes). Defaults to 0.
+ * @returns               Estimated fee in satoshis as a `bigint`.
  */
 export function estimateBurnFee(
   inputCount: number,
   outputCount: number,
   feeRate: number,
+  numTokenInputs: number = 0,
+  numTokenOutputs: number = 0,
 ): bigint {
-  const txBytes = BASE_TX_SIZE + inputCount * INPUT_SIZE + outputCount * OUTPUT_SIZE;
+  const txBytes =
+    BASE_TX_SIZE +
+    inputCount * INPUT_SIZE +
+    outputCount * OUTPUT_SIZE +
+    numTokenInputs * TOKEN_PREFIX_OVERHEAD +
+    numTokenOutputs * TOKEN_PREFIX_OVERHEAD;
   return BigInt(Math.ceil(txBytes * feeRate));
 }
