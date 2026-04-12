@@ -103,7 +103,7 @@ export function isBaseUtxo(value: unknown): value is BaseUtxo {
  */
 export function isTokenUtxo(value: unknown): value is TokenUtxo {
   if (!isBaseUtxo(value)) return false;
-  const u = value as Record<string, unknown>;
+  const u = value as unknown as Record<string, unknown>;
   if (!u.token || typeof u.token !== "object") return false;
   const t = u.token as Record<string, unknown>;
   if (!isTokenCategory(t.category)) return false;
@@ -163,7 +163,7 @@ export function assertBaseUtxo(value: unknown): asserts value is BaseUtxo {
  */
 export function assertTokenUtxo(value: unknown): asserts value is TokenUtxo {
   assertBaseUtxo(value);
-  const u = value as Record<string, unknown>;
+  const u = value as unknown as Record<string, unknown>;
   if (!u.token || typeof u.token !== "object") {
     throw new MintCoreError("TokenUtxo.token must be a non-null object");
   }
