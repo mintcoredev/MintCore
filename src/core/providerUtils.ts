@@ -91,7 +91,7 @@ export async function chronikFetchUtxos(
 ): Promise<Utxo[]> {
   const baseUrl = validateProviderUrl(rawUrl, "Chronik");
   try {
-    const res = await fetch(`${baseUrl}/address/${address}/utxos`);
+    const res = await fetch(`${baseUrl}/address/${encodeURIComponent(address)}/utxos`);
     if (!res.ok) {
       throw new MintCoreError(
         `Chronik UTXO request failed with status ${res.status}`
@@ -170,7 +170,7 @@ export async function electrumxFetchUtxos(
 ): Promise<Utxo[]> {
   const baseUrl = electrumxBaseUrl(rawUrl);
   try {
-    const res = await fetch(`${baseUrl}/address/${address}/unspent`);
+    const res = await fetch(`${baseUrl}/address/${encodeURIComponent(address)}/unspent`);
     if (!res.ok) {
       throw new MintCoreError(
         `ElectrumX UTXO request failed with status ${res.status}`

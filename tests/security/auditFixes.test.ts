@@ -17,7 +17,7 @@
  *  Sort  Numeric UTXO sort uses safe comparator
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 
 // ── 1.1 fromHex strict validation ─────────────────────────────────────────────
 
@@ -648,5 +648,91 @@ describe("validateBatchMintOptions — continueOnFailure type check", () => {
     expect(() =>
       validateBatchMintOptions({ continueOnFailure: "yes" as unknown as boolean })
     ).toThrow(MintCoreError);
+  });
+});
+
+// ── S1 URL path injection — encodeURIComponent(address) ───────────────────────
+//
+// Addresses containing path-traversal sequences, query separators, or fragment
+// markers must be percent-encoded before they are embedded in fetch URLs.
+// Without encoding, a crafted address like "../../admin?x=1" could alter the
+// effective URL path and potentially reach unintended endpoints on the server.
+
+describe("chronikFetchUtxos — address is percent-encoded in URL path (S1)", () => {
+  let capturedUrl: string | undefined;
+
+  beforeEach(() => {
+    capturedUrl = undefined;
+    // Intercept fetch, record the URL, and return a well-formed empty response.
+    globalThis.fetch = async (input: RequestInfo | URL) => {
+      capturedUrl = typeof input === "string" ? input : (input as Request).url ?? String(input);
+      return new Response(JSON.stringify({ utxos: [] }), { status: 200 });
+    };
+  });
+
+  it("percent-encodes path traversal sequences in the address", async () => {
+    await chronikFetchUtxos("https://chronik.example.com", "../../etc/passwd");
+    expect(capturedUrl).toContain(encodeURIComponent("../../etc/passwd"));
+    expect(capturedUrl).not.toContain("../../");
+  });
+
+  it("percent-encodes query separators in the address", async () => {
+    await chronikFetchUtxos("https://chronik.example.com", "addr?evil=1");
+    expect(capturedUrl).toContain(encodeURIComponent("addr?evil=1"));
+    expect(capturedUrl).not.toContain("?evil");
+  });
+
+  it("percent-encodes fragment identifiers in the address", async () => {
+    await chronikFetchUtxos("https://chronik.example.com", "addr#fragment");
+    expect(capturedUrl).toContain(encodeURIComponent("addr#fragment"));
+    expect(capturedUrl).not.toContain("#fragment");
+  });
+
+  it("does not double-encode a normal CashAddress", async () => {
+    const normal = "bitcoincash:qp3wjpa3tjlj042z2wv7hahsldgwhwy0rq9sywjpyy";
+    await chronikFetchUtxos("https://chronik.example.com", normal);
+    // Colons and lowercase letters should be untouched by encodeURIComponent
+    // (the colon IS encoded by encodeURIComponent; the address still round-trips)
+    expect(capturedUrl).toContain(
+      `/address/${encodeURIComponent(normal)}/utxos`
+    );
+  });
+});
+
+describe("electrumxFetchUtxos — address is percent-encoded in URL path (S1)", () => {
+  let capturedUrl: string | undefined;
+
+  beforeEach(() => {
+    capturedUrl = undefined;
+    globalThis.fetch = async (input: RequestInfo | URL) => {
+      capturedUrl = typeof input === "string" ? input : (input as Request).url ?? String(input);
+      return new Response(JSON.stringify([]), { status: 200 });
+    };
+  });
+
+  it("percent-encodes path traversal sequences in the address", async () => {
+    await electrumxFetchUtxos("https://electrumx.example.com", "../../etc/passwd");
+    expect(capturedUrl).toContain(encodeURIComponent("../../etc/passwd"));
+    expect(capturedUrl).not.toContain("../../");
+  });
+
+  it("percent-encodes query separators in the address", async () => {
+    await electrumxFetchUtxos("https://electrumx.example.com", "addr?evil=1");
+    expect(capturedUrl).toContain(encodeURIComponent("addr?evil=1"));
+    expect(capturedUrl).not.toContain("?evil");
+  });
+
+  it("percent-encodes fragment identifiers in the address", async () => {
+    await electrumxFetchUtxos("https://electrumx.example.com", "addr#fragment");
+    expect(capturedUrl).toContain(encodeURIComponent("addr#fragment"));
+    expect(capturedUrl).not.toContain("#fragment");
+  });
+
+  it("does not double-encode a normal CashAddress", async () => {
+    const normal = "bitcoincash:qp3wjpa3tjlj042z2wv7hahsldgwhwy0rq9sywjpyy";
+    await electrumxFetchUtxos("https://electrumx.example.com", normal);
+    expect(capturedUrl).toContain(
+      `/address/${encodeURIComponent(normal)}/unspent`
+    );
   });
 });
