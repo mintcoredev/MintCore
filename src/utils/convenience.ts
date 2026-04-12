@@ -24,7 +24,7 @@ export async function mintNFT(
 }
 
 /**
- * Verify a mint transaction by its txid.
+ * Validate that a string is a well-formed 64-character hex transaction ID.
  *
  * @param _config - Reserved for future on-chain verification via a UTXO
  *   provider. Currently unused — this function validates the txid format only.
@@ -33,22 +33,22 @@ export async function mintNFT(
  *   `false` otherwise.
  *
  * @remarks
- * This is a **placeholder** implementation. It performs a local format check
- * only and does **not** contact any network provider to confirm the
- * transaction has been broadcast or confirmed.
- *
- * @deprecated This function only validates the txid format locally and does
- *   not perform any on-chain verification. It will be replaced by a real
- *   network-backed implementation in a future release. Do not rely on it to
- *   confirm that a transaction is broadcast or confirmed.
+ * This is a **format-only** check. It does **not** contact any network
+ * provider to confirm the transaction has been broadcast or confirmed.
  */
-export async function verifyMint(
+export async function isValidTxid(
   _config: MintConfig,
   txid: string
 ): Promise<boolean> {
   if (!txid || typeof txid !== "string") return false;
   return /^[0-9a-f]{64}$/i.test(txid);
 }
+
+/**
+ * @deprecated Renamed to {@link isValidTxid}. This alias will be removed in a
+ * future release.
+ */
+export const verifyMint = isValidTxid;
 
 export function createMetadata(
   fields: Record<string, unknown>

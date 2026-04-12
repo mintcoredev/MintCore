@@ -11,29 +11,80 @@ import { toHex } from "../../utils/hex.js";
 import { MintCoreError } from "../../utils/errors.js";
 import type { CovenantDefinition } from "../interfaces/index.js";
 
-// ── Internal Base64 helpers (uses TextEncoder/TextDecoder — ES2020 + DOM) ──
+// ── Internal Base64 helpers (pure JS — no DOM btoa/atob dependency) ──────────
+
+const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// Module-level reverse lookup table for base64 decoding.
+const B64_LOOKUP = /* @__PURE__ */ (() => {
+  const tbl = new Uint8Array(128);
+  tbl.fill(255);
+  for (let i = 0; i < B64_CHARS.length; i++) tbl[B64_CHARS.charCodeAt(i)] = i;
+  tbl["=".charCodeAt(0)] = 0;
+  return tbl;
+})();
+
+/**
+ * Encode a Uint8Array to a Base64 string (pure JS, no DOM/Node dependency).
+ */
+function bytesToBase64(bytes: Uint8Array): string {
+  let result = "";
+  const len = bytes.length;
+  for (let i = 0; i < len; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < len ? bytes[i + 1] : 0;
+    const b2 = i + 2 < len ? bytes[i + 2] : 0;
+    result += B64_CHARS[b0 >> 2];
+    result += B64_CHARS[((b0 & 3) << 4) | (b1 >> 4)];
+    result += i + 1 < len ? B64_CHARS[((b1 & 15) << 2) | (b2 >> 6)] : "=";
+    result += i + 2 < len ? B64_CHARS[b2 & 63] : "=";
+  }
+  return result;
+}
+
+/**
+ * Decode a Base64 string to a Uint8Array (pure JS, no DOM/Node dependency).
+ * Throws on invalid characters.
+ */
+function base64ToBytes(encoded: string): Uint8Array {
+  // Strip trailing '=' padding (use indexOf to avoid regex backtracking)
+  let end = encoded.length;
+  while (end > 0 && encoded.charCodeAt(end - 1) === 61 /* '=' */) end--;
+  const stripped = encoded.substring(0, end);
+  const outLen = (stripped.length * 3) >>> 2;
+  const out = new Uint8Array(outLen);
+  let j = 0;
+  for (let i = 0; i < stripped.length; i += 4) {
+    const c0 = B64_LOOKUP[stripped.charCodeAt(i)];
+    const c1 = B64_LOOKUP[stripped.charCodeAt(i + 1)];
+    const c2 = i + 2 < stripped.length ? B64_LOOKUP[stripped.charCodeAt(i + 2)] : 0;
+    const c3 = i + 3 < stripped.length ? B64_LOOKUP[stripped.charCodeAt(i + 3)] : 0;
+    if (c0 === 255 || c1 === 255 || c2 === 255 || c3 === 255) {
+      throw new Error("Invalid base64 character");
+    }
+    out[j++] = (c0 << 2) | (c1 >> 4);
+    if (i + 2 < stripped.length) out[j++] = ((c1 & 15) << 4) | (c2 >> 2);
+    if (i + 3 < stripped.length) out[j++] = ((c2 & 3) << 6) | c3;
+  }
+  return out;
+}
 
 /**
  * Encode a UTF-8 string to Base64.
- * Uses TextEncoder so that non-ASCII characters are handled correctly.
+ * Uses TextEncoder + pure-JS base64 so that non-ASCII characters are handled
+ * correctly without depending on DOM `btoa`.
  */
 function utf8ToBase64(text: string): string {
-  const bytes = new TextEncoder().encode(text);
-  const chars = Array.from(bytes, (byte) => String.fromCharCode(byte));
-  return btoa(chars.join(""));
+  return bytesToBase64(new TextEncoder().encode(text));
 }
 
 /**
  * Decode a Base64 string to a UTF-8 string.
- * Uses TextDecoder so that non-ASCII characters are reconstructed correctly.
+ * Uses pure-JS base64 + TextDecoder so that non-ASCII characters are
+ * reconstructed correctly without depending on DOM `atob`.
  */
 function base64ToUtf8(encoded: string): string {
-  const binary = atob(encoded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new TextDecoder().decode(bytes);
+  return new TextDecoder().decode(base64ToBytes(encoded));
 }
 
 // ── Public utilities ────────────────────────────────────────────────────────
