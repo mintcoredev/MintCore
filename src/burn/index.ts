@@ -2,5 +2,7 @@
 export * from "./types.js";
 export * from "./calculateBurnAmounts.js";
 export * from "./isCategoryRetired.js";
-export * from "./buildPartialBurnTx.js";
-export * from "./buildFullCategoryRetirementTx.js";
+
+// buildPartialBurnTx and buildFullCategoryRetirementTx are unimplemented stubs
+// and are intentionally excluded from the public API until a future release
+// provides full implementations.

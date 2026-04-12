@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   mintFungibleToken,
   mintNFT,
+  isValidTxid,
   verifyMint,
   createMetadata,
   encodeMetadata,
@@ -112,33 +113,46 @@ describe("mintNFT", () => {
   });
 });
 
-// ─── verifyMint ───────────────────────────────────────────────────────────────
+// ─── isValidTxid (renamed from verifyMint) ────────────────────────────────────
 
-describe("verifyMint", () => {
+describe("isValidTxid", () => {
   it("returns true for a valid 64-character lowercase hex txid", async () => {
     const txid = "a".repeat(64);
-    expect(await verifyMint(baseConfig, txid)).toBe(true);
+    expect(await isValidTxid(baseConfig, txid)).toBe(true);
   });
 
   it("returns true for a valid 64-character mixed-case hex txid", async () => {
     const txid = "aAbBcCdD".repeat(8);
-    expect(await verifyMint(baseConfig, txid)).toBe(true);
+    expect(await isValidTxid(baseConfig, txid)).toBe(true);
   });
 
   it("returns false for an empty string", async () => {
-    expect(await verifyMint(baseConfig, "")).toBe(false);
+    expect(await isValidTxid(baseConfig, "")).toBe(false);
   });
 
   it("returns false for a txid shorter than 64 characters", async () => {
-    expect(await verifyMint(baseConfig, "a".repeat(63))).toBe(false);
+    expect(await isValidTxid(baseConfig, "a".repeat(63))).toBe(false);
   });
 
   it("returns false for a txid longer than 64 characters", async () => {
-    expect(await verifyMint(baseConfig, "a".repeat(65))).toBe(false);
+    expect(await isValidTxid(baseConfig, "a".repeat(65))).toBe(false);
   });
 
   it("returns false for a non-hex string of length 64", async () => {
-    expect(await verifyMint(baseConfig, "g".repeat(64))).toBe(false);
+    expect(await isValidTxid(baseConfig, "g".repeat(64))).toBe(false);
+  });
+});
+
+// ─── verifyMint (deprecated alias) ───────────────────────────────────────────
+
+describe("verifyMint (deprecated alias)", () => {
+  it("is the same function as isValidTxid", () => {
+    expect(verifyMint).toBe(isValidTxid);
+  });
+
+  it("still works for backward compatibility", async () => {
+    const txid = "a".repeat(64);
+    expect(await verifyMint(baseConfig, txid)).toBe(true);
   });
 });
 

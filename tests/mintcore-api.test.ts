@@ -17,6 +17,7 @@ import {
   mintFungibleToken,
   mintNFT,
   verifyMint,
+  isValidTxid,
   createMetadata,
   encodeMetadata,
   // ── BCMR metadata generator ─────────────────────────────────────────────────
@@ -85,8 +86,12 @@ describe("api/mintcore – function exports", () => {
     expect(typeof mintNFT).toBe("function");
   });
 
-  it("verifyMint is a function", () => {
+  it("verifyMint is a function (deprecated alias)", () => {
     expect(typeof verifyMint).toBe("function");
+  });
+
+  it("isValidTxid is a function", () => {
+    expect(typeof isValidTxid).toBe("function");
   });
 
   it("createMetadata is a function", () => {
