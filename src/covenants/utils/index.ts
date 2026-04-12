@@ -15,6 +15,15 @@ import type { CovenantDefinition } from "../interfaces/index.js";
 
 const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+// Module-level reverse lookup table for base64 decoding.
+const B64_LOOKUP = /* @__PURE__ */ (() => {
+  const tbl = new Uint8Array(128);
+  tbl.fill(255);
+  for (let i = 0; i < B64_CHARS.length; i++) tbl[B64_CHARS.charCodeAt(i)] = i;
+  tbl["=".charCodeAt(0)] = 0;
+  return tbl;
+})();
+
 /**
  * Encode a Uint8Array to a Base64 string (pure JS, no DOM/Node dependency).
  */
@@ -38,21 +47,18 @@ function bytesToBase64(bytes: Uint8Array): string {
  * Throws on invalid characters.
  */
 function base64ToBytes(encoded: string): Uint8Array {
-  // Build reverse lookup on first call
-  const lookup = new Uint8Array(128);
-  lookup.fill(255);
-  for (let i = 0; i < B64_CHARS.length; i++) lookup[B64_CHARS.charCodeAt(i)] = i;
-  lookup["=".charCodeAt(0)] = 0;
-
-  const stripped = encoded.replace(/=+$/, "");
+  // Strip trailing '=' padding (use indexOf to avoid regex backtracking)
+  let end = encoded.length;
+  while (end > 0 && encoded.charCodeAt(end - 1) === 61 /* '=' */) end--;
+  const stripped = encoded.substring(0, end);
   const outLen = (stripped.length * 3) >>> 2;
   const out = new Uint8Array(outLen);
   let j = 0;
   for (let i = 0; i < stripped.length; i += 4) {
-    const c0 = lookup[stripped.charCodeAt(i)];
-    const c1 = lookup[stripped.charCodeAt(i + 1)];
-    const c2 = i + 2 < stripped.length ? lookup[stripped.charCodeAt(i + 2)] : 0;
-    const c3 = i + 3 < stripped.length ? lookup[stripped.charCodeAt(i + 3)] : 0;
+    const c0 = B64_LOOKUP[stripped.charCodeAt(i)];
+    const c1 = B64_LOOKUP[stripped.charCodeAt(i + 1)];
+    const c2 = i + 2 < stripped.length ? B64_LOOKUP[stripped.charCodeAt(i + 2)] : 0;
+    const c3 = i + 3 < stripped.length ? B64_LOOKUP[stripped.charCodeAt(i + 3)] : 0;
     if (c0 === 255 || c1 === 255 || c2 === 255 || c3 === 255) {
       throw new Error("Invalid base64 character");
     }
