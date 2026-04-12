@@ -776,7 +776,7 @@ describe("deriveAddress — S3 key format validation", () => {
 
 describe("TransactionBuilder.build (offline) — S4 key material zeroed after use", () => {
   it("does not keep private key bytes in privKeyBin after offline build", async () => {
-    const VALID_KEY = "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1";
+    const VALID_KEY = "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1"; // gitleaks:allow -- dummy test hex, not a real secret
     const builder = new TransactionBuilder({
       network: "mainnet",
       privateKey: VALID_KEY,
