@@ -180,7 +180,7 @@ export async function electrumxFetchUtxos(
     if (typeof data?.error === "string" && data.error.length > 0) {
       throw new MintCoreError(`ElectrumX error: ${data.error}`);
     }
-    const items: Array<{ tx_hash: string; tx_pos: number; value: number }> =
+    const items: Array<{ tx_hash: string; tx_pos: number; value: number }> | null =
       Array.isArray(data?.result)
         ? data.result
         : Array.isArray(data)

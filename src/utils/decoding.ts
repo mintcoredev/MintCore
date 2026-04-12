@@ -1,5 +1,6 @@
 // Hex and binary decoding utilities.
 export { fromHex } from "./hex.js";
+import { MintCoreError } from "./errors.js";
 
 /**
  * Decode a UTF-8 `Uint8Array` to a string.
@@ -17,7 +18,12 @@ export function decodeUtf8(bytes: Uint8Array): string {
  * to the expected type before use (e.g. with a type guard or schema validator).
  *
  * @param bytes - UTF-8 bytes containing a JSON document.
+ * @throws {MintCoreError} when the bytes do not contain valid JSON.
  */
 export function decodeJson(bytes: Uint8Array): unknown {
-  return JSON.parse(decodeUtf8(bytes));
+  try {
+    return JSON.parse(decodeUtf8(bytes));
+  } catch {
+    throw new MintCoreError("Failed to parse JSON: input is not valid JSON");
+  }
 }
