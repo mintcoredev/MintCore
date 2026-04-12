@@ -59,12 +59,19 @@ export class TransactionBuilder {
     const privKeyBin = fromHex(this.config.privateKey);
     const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
     if (typeof pubKey === "string") {
+      privKeyBin.fill(0);
       throw new MintCoreError(`Invalid private key: ${pubKey}`);
     }
     const lockingBytecode = encodeLockingBytecodeP2pkh(hash160(pubKey));
 
     if (!this.hasProvider) {
-      return this.buildOfflineTransaction(schema, lockingBytecode);
+      try {
+        return this.buildOfflineTransaction(schema, lockingBytecode);
+      } finally {
+        // Zero key material even though it is not needed for offline transactions
+        privKeyBin.fill(0);
+        pubKey.fill(0);
+      }
     }
 
     return this.buildFundedTransaction(schema, lockingBytecode, privKeyBin, pubKey);

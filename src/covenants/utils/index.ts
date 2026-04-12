@@ -39,12 +39,31 @@ function base64ToUtf8(encoded: string): string {
 // ── Public utilities ────────────────────────────────────────────────────────
 
 /**
+ * Recursively canonicalize a value to a JSON string with sorted object keys.
+ *
+ * This ensures a stable, deterministic representation regardless of insertion
+ * order.  Properties with `undefined` values are omitted, matching
+ * `JSON.stringify` behavior.
+ */
+function canonicalize(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return "[" + (value as unknown[]).map(canonicalize).join(",") + "]";
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).filter(k => obj[k] !== undefined).sort();
+  return "{" + keys.map(k => JSON.stringify(k) + ":" + canonicalize(obj[k])).join(",") + "}";
+}
+
+/**
  * Compute a SHA-256 hash of a {@link CovenantDefinition}.
  *
- * The hash is derived from the JSON serialisation of the definition and
- * returned as a 64-character lowercase hex string.  Use this value to
- * produce a stable fingerprint of a covenant for storage, comparison, or
- * off-chain bookkeeping.
+ * The hash is derived from the canonical JSON serialisation of the definition
+ * (object keys sorted recursively, UTF-8 encoded) and returned as a
+ * 64-character lowercase hex string.  Use this value to produce a stable
+ * fingerprint of a covenant for storage, comparison, or off-chain bookkeeping.
  *
  * Does NOT generate or validate scripts.
  *
@@ -52,8 +71,8 @@ function base64ToUtf8(encoded: string): string {
  * @returns A 64-character lowercase hex string (32-byte SHA-256 digest).
  */
 export function hashCovenantDefinition(def: CovenantDefinition): string {
-  const json = JSON.stringify(def);
-  const bytes = new TextEncoder().encode(json);
+  const canonical = canonicalize(def);
+  const bytes = new TextEncoder().encode(canonical);
   return toHex(sha256.hash(bytes));
 }
 

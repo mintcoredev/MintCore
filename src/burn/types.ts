@@ -1,5 +1,6 @@
 // Burn module types.
-export type { Utxo } from "../types/TransactionTypes.js";
+import type { Utxo } from "../types/TransactionTypes.js";
+export type { Utxo };
 
 /** Optional token data that may be attached to a UTXO by an indexer. */
 export interface UtxoToken {
@@ -9,7 +10,7 @@ export interface UtxoToken {
 }
 
 /** Extended UTXO shape used by indexers that decorate UTXOs with token data. */
-export interface TokenUtxo extends import("../types/TransactionTypes.js").Utxo {
+export interface TokenUtxo extends Utxo {
   token?: UtxoToken;
 }
 

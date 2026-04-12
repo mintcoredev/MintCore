@@ -6,10 +6,11 @@ import {
   lockingBytecodeToCashAddress,
   CashAddressNetworkPrefix,
 } from "@bitauth/libauth";
-import { fromHex, toHex } from "./hex.js";
+import { fromHex, toHex, validatePrivateKeyHex } from "./hex.js";
 import { MintCoreError } from "./errors.js";
 
 export function privateKeyToBin(key: string): Uint8Array {
+  validatePrivateKeyHex(key);
   return fromHex(key);
 }
 
@@ -41,6 +42,7 @@ export function deriveAddress(
   privateKey: string,
   network: "mainnet" | "testnet" | "regtest"
 ): string {
+  validatePrivateKeyHex(privateKey);
   const privKeyBin = fromHex(privateKey);
   const pubKey = secp256k1.derivePublicKeyCompressed(privKeyBin);
   if (typeof pubKey === "string") {
