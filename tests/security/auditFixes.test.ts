@@ -802,7 +802,7 @@ describe("decodeJson — C4 MintCoreError on invalid JSON", () => {
   it("throws MintCoreError when bytes contain invalid JSON", () => {
     const badBytes = new TextEncoder().encode("not-json!!!");
     expect(() => decodeJson(badBytes)).toThrow(MintCoreError);
-    expect(() => decodeJson(badBytes)).toThrow(/not valid JSON/i);
+    expect(() => decodeJson(badBytes)).toThrow(/Failed to parse JSON/i);
   });
 
   it("throws MintCoreError for empty bytes", () => {

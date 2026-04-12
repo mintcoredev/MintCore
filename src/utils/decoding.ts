@@ -23,7 +23,8 @@ export function decodeUtf8(bytes: Uint8Array): string {
 export function decodeJson(bytes: Uint8Array): unknown {
   try {
     return JSON.parse(decodeUtf8(bytes));
-  } catch {
-    throw new MintCoreError("Failed to parse JSON: input is not valid JSON");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new MintCoreError(`Failed to parse JSON: ${msg}`);
   }
 }
